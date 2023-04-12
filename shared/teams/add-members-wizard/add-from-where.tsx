@@ -1,4 +1,3 @@
-import * as React from 'react'
 import * as Kb from '../../common-adapters'
 import * as Styles from '../../styles'
 import * as Container from '../../util/container'
@@ -46,13 +45,11 @@ const AddFromWhere = () => {
       allowOverflow={true}
       onClose={newTeam ? undefined : onClose} // Only show the close button if we're not coming from the new team wizard
       banners={
-        createTeamError
-          ? [
-              <Kb.Banner color="red" key="err">
-                {createTeamError}
-              </Kb.Banner>,
-            ]
-          : []
+        createTeamError ? (
+          <Kb.Banner color="red" key="err">
+            {createTeamError}
+          </Kb.Banner>
+        ) : null
       }
       header={{
         leftButton: newTeam ? (
@@ -61,9 +58,7 @@ const AddFromWhere = () => {
           <Kb.Text type="BodyBigLink" onClick={onClose}>
             Cancel
           </Kb.Text>
-        ) : (
-          undefined
-        ),
+        ) : undefined,
         rightButton: newTeam ? <Skip /> : undefined,
         title: (
           <ModalTitle

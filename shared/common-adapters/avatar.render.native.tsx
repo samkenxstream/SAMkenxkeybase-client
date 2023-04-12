@@ -4,7 +4,7 @@ import * as Styles from '../styles'
 import ClickableBox from './clickable-box'
 import Box from './box'
 import {NativeImage} from './native-image.native'
-import {Props, AvatarSize} from './avatar.render'
+import type {Props, AvatarSize} from './avatar.render'
 
 const Kb = {
   Box,
@@ -27,7 +27,7 @@ const borderOffset = -1
 const borderSize = 1
 // Layer on top to extend outside of the image
 
-const AvatarInner = (props: Props) => {
+const Avatar = React.memo(function Avatar(props: Props) {
   const {size} = props
   const borderRadius = (props.isTeam && sizeToTeamBorderRadius.get(size)) || size / 2
   const containerStyle = Styles.collapseStyles([boxStyles[size], props.style])
@@ -82,8 +82,7 @@ const AvatarInner = (props: Props) => {
       </Kb.Box>
     </Kb.ClickableBox>
   )
-}
-const Avatar = React.memo(AvatarInner)
+})
 
 const makeIconStyle = (size: AvatarSize) => ({height: size, width: size})
 const iconStyles = Styles.styleSheetCreate(() => ({

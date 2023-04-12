@@ -1,162 +1,139 @@
 import * as React from 'react'
 import * as Kb from '../../../common-adapters/mobile.native'
 import * as Styles from '../../../styles'
+import * as Constants from '../../../constants/chat2'
 import MessagePopup from '../messages/message-popup'
-import {Video} from 'expo-av'
+import {Video, ResizeMode} from 'expo-av'
 import logger from '../../../logger'
 import {ShowToastAfterSaving} from '../messages/attachment/shared'
 import type {Props} from '.'
 
-const {width: screenWidth, height: screenHeight} = Kb.NativeDimensions.get('window')
+const AutoMaxSizeImage = (p: {source: {uri: string}; onLoad: () => void; opacity: number}) => {
+  const {source, onLoad, opacity} = p
+  const {uri} = source
+  const [width, setWidth] = React.useState(0)
+  const [height, setHeight] = React.useState(0)
 
-class AutoMaxSizeImage extends React.Component<
-  {
-    source: {uri: string}
-    onLoad: () => void
-    opacity: number
-  },
-  {
-    width: number
-    height: number
-  }
-> {
-  state = {height: 0, width: 0}
-  _mounted: boolean = false
+  React.useEffect(() => {
+    Kb.NativeImage.getSize(uri, (width, height) => {
+      const clamped = Constants.clampImageSize(
+        width,
+        height,
+        Styles.dimensionWidth,
+        Styles.dimensionHeight - (Styles.isIOS ? 40 : 0)
+      )
+      setWidth(clamped.width)
+      setHeight(clamped.height)
+    })
+  }, [uri])
 
-  componentWillUnmount() {
-    this._mounted = false
-  }
-  componentDidMount() {
-    this._mounted = true
-    Kb.NativeImage.getSize(
-      this.props.source.uri,
-      (width, height) => {
-        if (this._mounted) {
-          this.setState({height, width})
-        }
-      },
-      () => {}
-    )
-  }
-
-  render() {
-    return (
-      <Kb.ZoomableBox
-        contentContainerStyle={styles.zoomableBoxContainer}
-        maxZoom={10}
-        style={styles.zoomableBox}
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
-      >
-        <Kb.NativeFastImage
-          {...this.props}
-          resizeMode="contain"
-          style={Styles.collapseStyles([
-            styles.fastImage,
-            {
-              height: Math.min(this.state.height, screenHeight),
-              opacity: this.props.opacity,
-              width: Math.min(this.state.width, screenWidth),
-            },
-          ])}
-        />
-      </Kb.ZoomableBox>
-    )
-  }
+  return (
+    <Kb.ZoomableBox
+      contentContainerStyle={[
+        styles.zoomableBoxContainer,
+        {height, maxHeight: height, maxWidth: width, width},
+      ]}
+      maxZoom={10}
+      style={styles.zoomableBox}
+      showsHorizontalScrollIndicator={false}
+      showsVerticalScrollIndicator={false}
+    >
+      <Kb.NativeFastImage
+        onLoad={onLoad}
+        source={source}
+        resizeMode={ResizeMode.CONTAIN}
+        style={[styles.fastImage, {height, opacity, width}]}
+      />
+    </Kb.ZoomableBox>
+  )
 }
 
-class _Fullscreen extends React.Component<Props & Kb.OverlayParentProps, {loaded: boolean}> {
-  state = {loaded: false}
-  _setLoaded = () => this.setState({loaded: true})
-  render() {
-    let content: React.ReactNode = null
-    let spinner: React.ReactNode = null
-    if (this.props.path) {
-      if (this.props.isVideo) {
-        const {previewHeight} = this.props
-        content = (
-          <Kb.Box2
-            direction="vertical"
-            fullWidth={true}
-            fullHeight={true}
-            centerChildren={true}
-            style={styles.videoWrapper}
-          >
-            <Video
-              source={{uri: `${this.props.path}&contentforce=true`}}
-              onError={e => {
-                logger.error(`Error loading vid: ${JSON.stringify(e)}`)
-              }}
-              onLoad={this._setLoaded}
-              shouldPlay={false}
-              useNativeControls={true}
-              style={{
-                height: Math.max(previewHeight, 100),
-                width: '100%',
-              }}
-              resizeMode="contain"
-            />
-          </Kb.Box2>
-        )
-      } else {
-        content = (
-          <AutoMaxSizeImage
-            source={{uri: `${this.props.path}`}}
-            onLoad={this._setLoaded}
-            opacity={this.state.loaded ? 1 : 0}
-          />
-        )
-      }
-    }
-    if (!this.state.loaded) {
-      spinner = (
+const Fullscreen = (p: Props) => {
+  const {path, previewHeight, message, onAllMedia, onClose, isVideo} = p
+  const [loaded, setLoaded] = React.useState(false)
+
+  const {toggleShowingPopup, showingPopup, popup} = Kb.usePopup(attachTo => (
+    <MessagePopup
+      attachTo={attachTo}
+      conversationIDKey={message.conversationIDKey}
+      ordinal={message.id}
+      onHidden={toggleShowingPopup}
+      position="bottom left"
+      visible={showingPopup}
+    />
+  ))
+
+  let content: React.ReactNode = null
+  let spinner: React.ReactNode = null
+  if (path) {
+    if (isVideo) {
+      content = (
         <Kb.Box2
           direction="vertical"
-          style={styles.progressWrapper}
-          centerChildren={true}
-          fullHeight={true}
           fullWidth={true}
+          fullHeight={true}
+          centerChildren={true}
+          style={styles.videoWrapper}
         >
-          <Kb.ProgressIndicator style={styles.progressIndicator} white={true} />
+          <Video
+            source={{uri: `${path}&contentforce=true`}}
+            onError={e => {
+              logger.error(`Error loading vid: ${JSON.stringify(e)}`)
+            }}
+            onLoad={() => setLoaded(true)}
+            shouldPlay={false}
+            useNativeControls={true}
+            style={{
+              height: Math.max(previewHeight, 100),
+              width: '100%',
+            }}
+            resizeMode={ResizeMode.CONTAIN}
+          />
         </Kb.Box2>
       )
+    } else {
+      content = (
+        <AutoMaxSizeImage source={{uri: `${path}`}} onLoad={() => setLoaded(true)} opacity={loaded ? 1 : 0} />
+      )
     }
-
-    return (
+  }
+  if (!loaded) {
+    spinner = (
       <Kb.Box2
         direction="vertical"
-        style={{backgroundColor: Styles.globalColors.blackOrBlack}}
-        fullWidth={true}
+        style={styles.progressWrapper}
+        centerChildren={true}
         fullHeight={true}
+        fullWidth={true}
       >
-        {spinner}
-        <ShowToastAfterSaving transferState={this.props.message.transferState} />
-        <Kb.Box2 direction="horizontal" fullWidth={true} style={styles.headerWrapper}>
-          <Kb.Text type="Body" onClick={this.props.onClose} style={styles.close}>
-            Close
-          </Kb.Text>
-          <Kb.Text type="Body" onClick={this.props.onAllMedia} style={styles.allMedia}>
-            All media
-          </Kb.Text>
-        </Kb.Box2>
-        <Kb.BoxGrow>{content}</Kb.BoxGrow>
-        <Kb.Button
-          icon="iconfont-ellipsis"
-          style={styles.headerFooter}
-          onClick={this.props.toggleShowingMenu}
-        />
-        <MessagePopup
-          attachTo={this.props.getAttachmentRef}
-          message={this.props.message}
-          onHidden={this.props.toggleShowingMenu}
-          position="bottom left"
-          visible={this.props.showingMenu}
-        />
+        <Kb.ProgressIndicator style={styles.progressIndicator} white={true} />
       </Kb.Box2>
     )
   }
+
+  return (
+    <Kb.Box2
+      direction="vertical"
+      style={{backgroundColor: Styles.globalColors.blackOrBlack}}
+      fullWidth={true}
+      fullHeight={true}
+    >
+      {spinner}
+      <ShowToastAfterSaving transferState={message.transferState} />
+      <Kb.Box2 direction="horizontal" fullWidth={true} style={styles.headerWrapper}>
+        <Kb.Text type="Body" onClick={onClose} style={styles.close}>
+          Close
+        </Kb.Text>
+        <Kb.Text type="Body" onClick={onAllMedia} style={styles.allMedia}>
+          All media
+        </Kb.Text>
+      </Kb.Box2>
+      <Kb.BoxGrow>{content}</Kb.BoxGrow>
+      <Kb.Button icon="iconfont-ellipsis" style={styles.headerFooter} onClick={toggleShowingPopup} />
+      {popup}
+    </Kb.Box2>
+  )
 }
-const Fullscreen = Kb.OverlayParentHOC(_Fullscreen)
 
 const styles = Styles.styleSheetCreate(
   () =>
@@ -177,8 +154,8 @@ const styles = Styles.styleSheetCreate(
         padding: Styles.globalMargins.small,
       },
       fastImage: {
-        alignSelf: 'center',
-        flex: 1,
+        height: Styles.dimensionHeight,
+        width: Styles.dimensionWidth,
       },
       headerFooter: {
         ...Styles.globalStyles.flexBoxRow,
@@ -210,7 +187,6 @@ const styles = Styles.styleSheetCreate(
       zoomableBox: {
         backgroundColor: Styles.globalColors.blackOrBlack,
         height: '100%',
-        overflow: 'hidden',
         position: 'relative',
         width: '100%',
       },

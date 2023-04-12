@@ -1,4 +1,3 @@
-import * as React from 'react'
 import ScrollView from './scroll-view'
 import type {Props} from './zoomable-box'
 
@@ -8,6 +7,7 @@ const Kb = {
 
 export const ZoomableBox = (props: Props) => (
   <Kb.ScrollView
+    centerContent={true}
     alwaysBounceVertical={false}
     bounces={props.bounces}
     children={props.children}
@@ -16,8 +16,7 @@ export const ZoomableBox = (props: Props) => (
     maximumZoomScale={props.maxZoom || 3}
     minimumZoomScale={props.minZoom || 1}
     onScroll={e =>
-      props.onZoom &&
-      props.onZoom({
+      props.onZoom?.({
         // @ts-ignore misses rn types
         height: e.nativeEvent.contentSize.height,
         // @ts-ignore misses rn types

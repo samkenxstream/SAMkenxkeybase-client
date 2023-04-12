@@ -1,5 +1,6 @@
-// @ts-nocheck
-/* eslint-disable */
+// this is to defer actually importing these modules until you actually use them
+// this file is ignored by ts
+// @ts-ignore
 module.exports = {
   get Animation() {
     return require('./animation').default
@@ -34,6 +35,9 @@ module.exports = {
   get BoxGrow() {
     return require('./box-grow').default
   },
+  get BoxGrow2() {
+    return require('./box-grow').BoxGrow2
+  },
   get Button() {
     return require('./button').default
   },
@@ -51,6 +55,9 @@ module.exports = {
   },
   get ClickableBox() {
     return require('./clickable-box').default
+  },
+  get ClickableBox2() {
+    return require('./clickable-box').ClickableBox2
   },
   get ConfirmModal() {
     return require('./confirm-modal/index').default
@@ -129,9 +136,6 @@ module.exports = {
   get HotKey() {
     return require('./hot-key').HotKey
   },
-  get HoverHoc() {
-    return require('./hover-hoc').default
-  },
   get Icon() {
     return require('./icon').default
   },
@@ -147,8 +151,8 @@ module.exports = {
   get Input() {
     return require('./input').default
   },
-  get KeyboardAvoidingView() {
-    return require('./keyboard-avoiding-view').default
+  get KeyboardAvoidingView2() {
+    return require('./keyboard-avoiding-view').KeyboardAvoidingView2
   },
   get LabeledInput() {
     return require('./labeled-input').default
@@ -189,9 +193,6 @@ module.exports = {
   get ModalHeader() {
     return require('./modal').Header
   },
-  get MultiAvatar() {
-    return require('./multi-avatar').default
-  },
   get NameWithIcon() {
     return require('./name-with-icon').default
   },
@@ -200,9 +201,6 @@ module.exports = {
   },
   get Overlay() {
     return require('./overlay').default
-  },
-  get OverlayParentHOC() {
-    return require('./overlay/parent-hoc').default
   },
   get PhoneInput() {
     return require('./phone-input').default
@@ -218,9 +216,6 @@ module.exports = {
   },
   get PopupDialog() {
     return require('./popup-dialog').default
-  },
-  get PopupDialogHoc() {
-    return require('./popup-dialog-hoc').default
   },
   get PopupHeaderText() {
     return require('./popup-header-text').default
@@ -312,8 +307,14 @@ module.exports = {
   get WithTooltip() {
     return require('./with-tooltip').default
   },
+  get ZoomableImage() {
+    return require('./zoomable-image').default
+  },
   get isValidIconType() {
     return require('./icon.shared').isValidIconType
+  },
+  get keyboardDismiss() {
+    return require('./keyboard').dismiss
   },
   get largeListItem2Height() {
     return require('./list-item2').largeHeight
@@ -338,6 +339,9 @@ module.exports = {
   },
   get usePopup() {
     return require('./use-popup').usePopup
+  },
+  get usePopup2() {
+    return require('./use-popup').usePopup2
   },
   get useSafeAreaInsets() {
     return require('./safe-area-view').useSafeAreaInsets

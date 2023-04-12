@@ -1,4 +1,4 @@
-import React, {Component} from 'react'
+import * as React from 'react'
 import openURL from '../util/open-url'
 import {fontSizeToSizeStyle, lineClamp, metaData} from './text.meta.native'
 import shallowEqual from 'shallowequal'
@@ -30,7 +30,7 @@ const styles = Styles.styleSheetCreate(() =>
 
 // Init common styles for perf
 
-class Text extends Component<Props> {
+class Text extends React.Component<Props> {
   static defaultProps = {
     allowFontScaling: false,
   }
@@ -120,7 +120,7 @@ class Text extends Component<Props> {
           this._nativeText = ref
         }}
         selectable={this.props.selectable}
-        textBreakStrategy={this.props.textBreakStrategy}
+        textBreakStrategy={this.props.textBreakStrategy ?? 'simple'}
         style={style}
         {...lineClamp(this.props.lineClamp || undefined, this.props.ellipsizeMode || undefined)}
         onPress={onPress}

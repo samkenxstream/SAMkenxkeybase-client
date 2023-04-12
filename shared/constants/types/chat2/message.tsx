@@ -1,13 +1,13 @@
 // Types related to a message
-import * as Common from './common'
-import * as RPCTypes from '../rpc-gen'
-import * as RPCChatTypes from '../rpc-chat-gen'
-import * as RPCStellarTypes from '../rpc-stellar-gen'
-import * as WalletTypes from '../wallets'
-import * as TeamTypes from '../teams'
-import HiddenString from '../../../util/hidden-string'
-import {DeviceType} from '../devices'
-import {ServiceIdWithContact} from '../team-building'
+import type * as Common from './common'
+import type * as RPCTypes from '../rpc-gen'
+import type * as RPCChatTypes from '../rpc-chat-gen'
+import type * as RPCStellarTypes from '../rpc-stellar-gen'
+import type * as WalletTypes from '../wallets'
+import type * as TeamTypes from '../teams'
+import type HiddenString from '../../../util/hidden-string'
+import type {DeviceType} from '../devices'
+import type {ServiceIdWithContact} from '../team-building'
 
 // The actual ID the server uses for operations (edit, delete etc)
 export type MessageID = number
@@ -62,13 +62,40 @@ export type PathAndOutboxID = {
 
 // optional props here may never get set depending on the type
 type _MessageCommon = {
+  inlineVideoPlayable?: boolean
+  title?: string
+  isCollapsed?: boolean
+  previewURL?: string
+  fileURL?: string
+  previewHeight?: number
+  previewWidth?: number
+  attachmentType?: AttachmentType
+  fileName?: string
+  transferErrMsg?: string | null
+  transferState?: MessageAttachmentTransferState
+  fileType?: string // MIME type,
+  unfurls?: UnfurlMap
+  downloadPath?: string | null // string if downloaded,
   author: string
   bodySummary: HiddenString
+  botUsername?: string
+  cardType?: RPCChatTypes.JourneycardType
+  newChannelname?: string
+  invitee?: string
+  adder?: string
+  prover?: string
+  joiners?: Array<string>
+  leavers?: Array<string>
+  explodingUnreadable?: boolean
   conversationIDKey: Common.ConversationIDKey
   deviceRevokedAt?: number
+  deviceName?: string
+  deviceType?: DeviceType
   errorReason?: string
   errorTyp?: number
   exploded?: boolean
+  exploding?: boolean
+  explodedBy?: string // only if 'explode now' happened,
   hasBeenEdited?: boolean
   id: MessageID
   isDeleteable?: boolean
@@ -76,6 +103,7 @@ type _MessageCommon = {
   ordinal: Ordinal
   outboxID?: OutboxID
   reactions?: Reactions
+  replyTo?: Message | null
   submitState?: 'deleting' | 'editing' | 'pending' | 'failed'
   timestamp: number
 }
@@ -128,7 +156,7 @@ export type MessageText = {
   mentionsAt: MentionsAt
   mentionsChannel: MentionsChannel
   mentionsChannelName: MentionsChannelName
-  // eslint-disable-next-line no-use-before-define
+
   replyTo: Message | null
   text: HiddenString
   paymentInfo: ChatPaymentInfo | null // If null, we are waiting on this from the service,

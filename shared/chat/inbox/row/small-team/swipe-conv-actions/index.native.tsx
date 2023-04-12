@@ -1,129 +1,175 @@
-import * as React from 'react'
+import * as Chat2Gen from '../../../../../actions/chat2-gen'
+import * as Container from '../../../../../util/container'
 import * as Kb from '../../../../../common-adapters/mobile.native'
+import * as React from 'react'
+import * as Reanimated from 'react-native-reanimated'
+import * as RowSizes from '../../sizes'
 import * as Styles from '../../../../../styles'
-import {RectButton} from 'react-native-gesture-handler'
 import type {Props} from '.'
-
-let openSwipeRef: React.RefObject<Kb.Swipeable> | undefined
+import {RectButton} from 'react-native-gesture-handler'
+import {Swipeable} from '../../../../../common-adapters/swipeable.native'
+import {ConversationIDKeyContext} from '../contexts'
 
 const Action = (p: {
   text: string
+  mult: number
   color: Styles.Color
   iconType: Kb.IconType
-  x: number
   onClick: () => void
-  progress: Kb.NativeAnimated.AnimatedInterpolation
+  progress: Reanimated.SharedValue<number>
 }) => {
-  const {text, color, iconType, x, onClick, progress} = p
-  const trans = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [x, 0],
-  })
+  const {text, color, iconType, onClick, progress, mult} = p
+  const as = Reanimated.useAnimatedStyle(() => ({
+    transform: [{translateX: -mult * progress.value}],
+  }))
+
   return (
-    <Kb.NativeAnimated.View style={{flex: 1, transform: [{translateX: trans}]}}>
+    <Reanimated.default.View style={[styles.action, as]}>
       <RectButton style={[styles.rightAction, {backgroundColor: color as string}]} onPress={onClick}>
         <Kb.Icon type={iconType} color={Styles.globalColors.white} />
         <Kb.Text type="BodySmall" style={styles.actionText}>
           {text}
         </Kb.Text>
       </RectButton>
-    </Kb.NativeAnimated.View>
+    </Reanimated.default.View>
   )
 }
 
-const SwipeConvActions = (props: Props) => {
-  const swipeRef = React.useRef<Kb.Swipeable>(null)
-  const {children, isMuted, onMuteConversation, onHideConversation} = props
-
-  const onCleanRef = React.useCallback(() => {
-    // we're unmounting, so lets not hold the ref
-    if (swipeRef === openSwipeRef) {
-      openSwipeRef = undefined
-    }
-  }, [swipeRef])
-
-  const onClose = React.useCallback(() => {
-    swipeRef.current?.close()
-    onCleanRef()
-  }, [swipeRef, onCleanRef])
-
-  const onMute = React.useCallback(() => {
-    onMuteConversation()
-    onClose()
-  }, [onClose, onMuteConversation])
-
-  const onHide = React.useCallback(() => {
-    onHideConversation()
-    onClose()
-  }, [onClose, onHideConversation])
-
-  const onWillOpen = React.useCallback(() => {
-    // close others
-    openSwipeRef?.current?.close()
-    openSwipeRef = swipeRef
-  }, [swipeRef])
+const SwipeConvActions = React.memo(function SwipeConvActions(p: Props) {
+  const {swipeCloseRef, children} = p
+  const conversationIDKey = React.useContext(ConversationIDKeyContext)
+  const [extraData, setExtraData] = React.useState(0)
 
   React.useEffect(() => {
-    return () => {
-      onCleanRef()
+    // only if open
+    if (swipeCloseRef?.current) {
+      setExtraData(d => d + 1)
     }
-    // eslint-disable-next-line
-  }, []) // only run on unmount
+  }, [swipeCloseRef, conversationIDKey])
 
-  const renderRightActions = React.useCallback(
-    (progress: Kb.NativeAnimated.AnimatedInterpolation) => (
+  const dispatch = Container.useDispatch()
+  const onMarkConversationAsUnread = Container.useEvent(() => {
+    dispatch(Chat2Gen.createMarkAsUnread({conversationIDKey, readMsgID: null}))
+  })
+  const onMuteConversation = Container.useEvent(() => {
+    dispatch(Chat2Gen.createMuteConversation({conversationIDKey, muted: !isMuted}))
+  })
+  const onHideConversation = Container.useEvent(() => {
+    dispatch(Chat2Gen.createHideConversation({conversationIDKey}))
+  })
+
+  const isMuted = Container.useSelector(state => state.chat2.mutedMap.get(conversationIDKey) ?? false)
+
+  const onMarkAsUnread = Container.useEvent(() => {
+    onMarkConversationAsUnread()
+    swipeCloseRef?.current?.()
+  })
+
+  const onMute = Container.useEvent(() => {
+    onMuteConversation()
+    swipeCloseRef?.current?.()
+  })
+
+  const onHide = Container.useEvent(() => {
+    onHideConversation()
+    swipeCloseRef?.current?.()
+  })
+
+  const makeActionsRef = React.useRef<(p: Reanimated.SharedValue<number>) => React.ReactNode>(
+    (_p: Reanimated.SharedValue<number>) => null
+  )
+  React.useEffect(() => {
+    makeActionsRef.current = (progress: Reanimated.SharedValue<number>) => (
       <Kb.NativeView style={styles.container}>
+        <Action
+          text="Unread"
+          color={Styles.globalColors.blue}
+          iconType="iconfont-envelope-solid"
+          onClick={onMarkAsUnread}
+          mult={0}
+          progress={progress}
+        />
         <Action
           text={isMuted ? 'Unmute' : 'Mute'}
           color={Styles.globalColors.orange}
           iconType="iconfont-shh"
-          x={128}
           onClick={onMute}
+          mult={1 / 3}
           progress={progress}
         />
         <Action
           text="Hide"
           color={Styles.globalColors.greyDarker}
           iconType="iconfont-hide"
-          x={64}
           onClick={onHide}
+          mult={2 / 3}
           progress={progress}
         />
       </Kb.NativeView>
-    ),
-    [isMuted, onHide, onMute]
-  )
+    )
+  }, [onMarkAsUnread, onMute, onHide, isMuted])
 
+  const props = {
+    children,
+    extraData,
+    makeActionsRef,
+    swipeCloseRef,
+  }
+
+  return <SwipeConvActionsImpl {...props} />
+})
+
+type IProps = {
+  children: React.ReactNode
+  extraData: unknown
+  swipeCloseRef: Props['swipeCloseRef']
+  makeActionsRef: React.MutableRefObject<(p: Reanimated.SharedValue<number>) => React.ReactNode>
+}
+
+const SwipeConvActionsImpl = React.memo(function SwipeConvActionsImpl(props: IProps) {
+  const {children, swipeCloseRef, makeActionsRef, extraData} = props
   return (
-    <Kb.Swipeable
-      ref={swipeRef}
-      renderRightActions={renderRightActions}
-      onSwipeableWillOpen={onWillOpen}
-      friction={2}
-      leftThreshold={30}
-      rightThreshold={40}
+    <Swipeable
+      actionWidth={64 * 3}
+      swipeCloseRef={swipeCloseRef}
+      makeActionsRef={makeActionsRef}
+      style={styles.row}
+      extraData={extraData}
     >
       {children}
-    </Kb.Swipeable>
+    </Swipeable>
   )
-}
+})
 
 const styles = Styles.styleSheetCreate(
   () =>
     ({
+      action: {
+        height: '100%',
+        left: 0,
+        position: 'absolute',
+        top: 0,
+        width: 64,
+      },
       actionText: {
         backgroundColor: 'transparent',
         color: Styles.globalColors.white,
       },
       container: {
+        display: 'flex',
         flexDirection: 'row',
+        height: '100%',
         width: 128,
       },
       rightAction: {
         alignItems: 'center',
-        flex: 1,
+        height: '100%',
         justifyContent: 'center',
-        width: 65, // set to one pixel larger to stop a visual blinking artifact
+        width: '100%',
+      },
+      row: {
+        flexShrink: 0,
+        height: RowSizes.smallRowHeight,
       },
     } as const)
 )

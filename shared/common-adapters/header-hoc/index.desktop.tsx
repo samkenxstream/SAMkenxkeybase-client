@@ -4,8 +4,8 @@ import BackButton from '../back-button'
 import Box from '../box'
 import Icon from '../icon'
 import * as Styles from '../../styles'
-import {Props, LeftActionProps} from '.'
-import {hoistNonReactStatic} from '../../util/container'
+import type {Props, LeftActionProps} from '.'
+import {useNavigation} from '@react-navigation/core'
 
 export const HeaderHocHeader = ({
   headerStyle,
@@ -48,12 +48,13 @@ export const LeftAction = ({
   theme,
 }: LeftActionProps) => (
   <Box style={Styles.collapseStyles([styles.leftAction, hasTextTitle && styles.grow])}>
-    {onLeftAction &&
-      (leftAction === 'cancel' ? (
-        <Text type="BodyBigLink" style={styles.action} onClick={onLeftAction}>
-          {leftActionText || customCancelText || 'Cancel'}
-        </Text>
-      ) : (
+    {onLeftAction && leftAction === 'cancel' ? (
+      <Text type="BodyBigLink" style={styles.action} onClick={onLeftAction}>
+        {leftActionText || customCancelText || 'Cancel'}
+      </Text>
+    ) : (
+      onLeftAction ||
+      (leftAction === 'back' && (
         <BackButton
           badgeNumber={badgeNumber}
           hideBackLabel={hideBackLabel}
@@ -66,17 +67,12 @@ export const LeftAction = ({
           }
           style={styles.action}
           textStyle={disabled ? styles.disabledText : undefined}
-          onClick={disabled ? undefined : onLeftAction}
+          onClick={disabled ? undefined : onLeftAction ?? undefined}
         />
-      ))}
+      ))
+    )}
   </Box>
 )
-
-function HeaderHoc<P extends {}>(WrappedComponent: React.ComponentType<P>) {
-  const HH = (props: P & Props) => <WrappedComponent {...(props as P)} />
-  hoistNonReactStatic(HH, WrappedComponent)
-  return HH
-}
 
 export const HeaderHocWrapper = (props: Props & {children: React.ReactNode}) => {
   return props.children
@@ -186,4 +182,14 @@ export const HeaderLeftCancel = hp =>
     />
   ) : null
 
-export default HeaderHoc
+export const HeaderLeftCancel2 = hp => {
+  const navigation = useNavigation()
+  const onBack = React.useCallback(() => {
+    // @ts-ignore
+    navigation.pop()
+  }, [navigation])
+
+  return hp.canGoBack ?? true ? (
+    <LeftAction badgeNumber={0} leftAction="cancel" customIconColor={hp.tintColor} onLeftAction={onBack} />
+  ) : null
+}

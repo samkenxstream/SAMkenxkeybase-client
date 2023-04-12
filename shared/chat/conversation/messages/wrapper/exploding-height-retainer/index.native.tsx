@@ -2,8 +2,10 @@ import * as React from 'react'
 import * as Kb from '../../../../../common-adapters/mobile.native'
 import * as Styles from '../../../../../styles'
 import throttle from 'lodash/throttle'
-import {Props} from '.'
-import SharedTimer, {SharedTimerID} from '../../../../../util/shared-timers'
+// ios must animated plain colors not the dynamic ones
+import colors, {darkColors} from '../../../../../styles/colors'
+import type {Props} from '.'
+import SharedTimer, {type SharedTimerID} from '../../../../../util/shared-timers'
 
 // If this image changes, some hard coded dimensions
 // in this file also need to change.
@@ -183,15 +185,19 @@ class EmojiTower extends React.Component<
     for (let i = 0; i < this.props.numImages * 4; i++) {
       const r = Math.random()
       let emoji
-      if (r < 0.33) {
-        emoji = '💥'
-      } else if (r < 0.66) {
-        emoji = '💣'
+      if (Styles.isAndroid) {
+        emoji = r < 0.5 ? '💥' : '💣'
       } else {
-        emoji = Styles.isAndroid ? '🎇' : '🤯'
+        if (r < 0.33) {
+          emoji = '💥'
+        } else if (r < 0.66) {
+          emoji = '💣'
+        } else {
+          emoji = '🤯'
+        }
       }
       children.push(
-        <Kb.Text key={i} type="Body">
+        <Kb.Text key={i} type="Body" fixOverdraw={false}>
           {emoji}
         </Kb.Text>
       )
@@ -213,14 +219,15 @@ const AshTower = (props: {explodedBy?: string; numImages: number; showExploded: 
   let exploded: React.ReactNode = null
   if (props.showExploded) {
     exploded = !props.explodedBy ? (
-      <Kb.Text type="BodyTiny" style={styles.exploded}>
+      <Kb.Text type="BodyTiny" style={styles.exploded} fixOverdraw={false}>
         EXPLODED
       </Kb.Text>
     ) : (
-      <Kb.Text lineClamp={1} type="BodyTiny" style={styles.exploded}>
+      <Kb.Text lineClamp={1} type="BodyTiny" style={styles.exploded} fixOverdraw={false}>
         EXPLODED BY{' '}
         <Kb.ConnectedUsernames
           type="BodySmallBold"
+          fixOverdraw="auto"
           onUsernameClicked="profile"
           usernames={props.explodedBy}
           inline={true}
@@ -242,6 +249,7 @@ const styles = Styles.styleSheetCreate(
   () =>
     ({
       ashes: {
+        backgroundColor: Styles.globalColors.fastBlank,
         height: 80,
         width: 400,
       },
@@ -264,7 +272,7 @@ const styles = Styles.styleSheetCreate(
         overflow: 'hidden',
       },
       slider: {
-        backgroundColor: Styles.globalColors.white,
+        backgroundColor: Styles.isDarkMode() ? darkColors.white : colors.white,
         bottom: 0,
         height: '100%',
         left: 0,
@@ -275,8 +283,9 @@ const styles = Styles.styleSheetCreate(
       tagBox: {
         ...Styles.globalStyles.flexBoxColumn,
         alignItems: 'flex-end',
+        backgroundColor: Styles.globalColors.fastBlank,
         bottom: 2,
-        minWidth: 200,
+        minWidth: 80,
         position: 'absolute',
         right: 0,
       },

@@ -2,30 +2,27 @@
  * File to stash local debug changes to. Never check this in with changes
  */
 import {LogBox} from 'react-native'
-import {NativeModules} from './util/native-modules.native'
+import {serverConfig} from 'react-native-kb'
 import noop from 'lodash/noop'
 
 // Toggle this to disable yellowboxes
 LogBox.ignoreAllLogs()
 
-// store the vanilla console helpers
-window.console._log = window.console.log
-window.console._warn = window.console.warn
-window.console._error = window.console.error
-window.console._info = window.console.info
-
 // uncomment this to watch the RN bridge traffic: https://github.com/facebook/react-native/commit/77e48f17824870d30144a583be77ec5c9cf9f8c5
-// require('react-native/Libraries/BatchedBridge/MessageQueue').spy(msg =>
-//   console._log('queuespy: ', msg, JSON.stringify(msg).length)
-// )
+// require('react-native/Libraries/BatchedBridge/MessageQueue').spy(msg => {
+//   if (msg.module !== 'WebSocketModule') {
+//     console._log('queuespy: ', msg, JSON.stringify(msg).length)
+//   }
+// })
 // uncomment this to watch for event loop stalls: https://github.com/facebook/react-native/blob/0.59-stable/Libraries/Interaction/BridgeSpyStallHandler.js
 // require('react-native/Libraries/Interaction/InteractionStallDebugger').install({thresholdMS: 100})
 
 // Set this to true if you want to turn off most console logging so you can profile easier
 const PERF = false
 
-let config = {
+const config = {
   allowMultipleInstances: false,
+  debugFullLogs: false,
   enableActionLogging: true, // Log actions to the log
   enableStoreLogging: false, // Log full store changes
   featureFlagsOverride: '', // Override feature flags
@@ -44,25 +41,25 @@ let config = {
   printRPCWaitingSession: false,
   showDevTools: false,
   skipAppFocusActions: false,
+  skipExtensions: true,
   skipSecondaryDevtools: true,
   userTimings: false, // Add user timings api to timeline in chrome
-  virtualListMarks: false, // If true add constraints to items in virtual lists so we can tell when measuring is incorrect
 }
 
 // Developer settings
 if (__DEV__) {
-  config.enableActionLogging = true
+  config.enableActionLogging = false
   config.enableStoreLogging = false
   config.immediateStateLogging = false
   // Move this outside the if statement to get notifications working
   // with a "Profile" build on a phone.
   config.isDevApplePushToken = true
-  config.printOutstandingRPCs = true
-  config.printOutstandingTimerListeners = true
+  config.printOutstandingRPCs = false
+  config.printOutstandingTimerListeners = false
   config.printRPCWaitingSession = false
-  config.printRPC = true
+  config.printRPC = false
   // TODO is this even used?
-  config.printRPCStats = true
+  config.printRPCStats = false
   config.userTimings = false
 
   // uncomment this to watch the RN bridge traffic: https://github.com/facebook/react-native/commit/77e48f17824870d30144a583be77ec5c9cf9f8c5
@@ -90,6 +87,13 @@ if (__DEV__) {
 //   window.console.info = window.console.log
 // }
 
+// If debugFullLogs
+if (config.debugFullLogs) {
+  console.warn('\n\n\nlocal debug config.debugFullLogs is ONNNNNn!!!!!1!!!11!!!!\n')
+  config.printRPC = true
+  config.enableActionLogging = true
+}
+
 if (PERF) {
   console.warn('\n\n\nlocal debug PERF is ONNNNNn!!!!!1!!!11!!!!\nAll console.logs disabled!\n\n\n')
 
@@ -109,11 +113,11 @@ if (PERF) {
   config.userTimings = true
 }
 
-if (NativeModules.KeybaseEngine.serverConfig) {
+if (serverConfig) {
   try {
-    const serverConfig = JSON.parse(NativeModules.KeybaseEngine.serverConfig)
-    if (serverConfig.lastLoggedInUser) {
-      const userConfig = serverConfig[serverConfig.lastLoggedInUser] || {}
+    const sc = JSON.parse(serverConfig)
+    if (sc.lastLoggedInUser) {
+      const userConfig = sc[sc.lastLoggedInUser] || {}
       if (userConfig.printRPCStats) {
         config.printRPCStats = true
       }
@@ -139,7 +143,7 @@ export const {
   printRPCBytes,
   printRPCStats,
   showDevTools,
+  skipExtensions,
   skipSecondaryDevtools,
   userTimings,
-  virtualListMarks,
 } = config

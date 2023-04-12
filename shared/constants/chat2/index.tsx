@@ -4,7 +4,6 @@ import * as TeamBuildingConstants from '../team-building'
 import * as Types from '../types/chat2'
 import * as Router2 from '../router2'
 import * as TeamConstants from '../teams'
-import clamp from 'lodash/clamp'
 import {isMobile, isTablet} from '../platform'
 import {
   noConversationIDKey,
@@ -14,12 +13,29 @@ import {
   isValidConversationIDKey,
 } from '../types/chat2/common'
 import HiddenString from '../../util/hidden-string'
-import {formatTextForQuoting} from '../../util/chat'
 import {getEffectiveRetentionPolicy, getMeta} from './meta'
 import {memoize} from '../../util/memoize'
 import type * as TeamTypes from '../types/teams'
 import type * as UserTypes from '../types/users'
 import type {TypedState} from '../reducer'
+
+export const getMessageRenderType = (m: Types.Message): Types.RenderMessageType => {
+  switch (m.type) {
+    case 'attachment':
+      if (m.inlineVideoPlayable && m.attachmentType !== 'audio') {
+        return 'attachment:video'
+      }
+      return `attachment:${m.attachmentType}`
+    default:
+      return m.type
+  }
+}
+
+export const formatTextForQuoting = (text: string) =>
+  text
+    .split('\n')
+    .map(line => `> ${line}\n`)
+    .join('')
 
 export const defaultTopReacjis = [
   {name: ':+1:'},
@@ -45,7 +61,6 @@ export const blockButtonsGregorPrefix = 'blockButtons.'
 export const makeState = (): Types.State => ({
   accountsInfoMap: new Map(),
   attachmentViewMap: new Map(),
-  audioRecording: new Map(),
   badgeMap: new Map(), // id to the badge count
   bigTeamBadgeCount: 0,
   blockButtonsMap: new Map(),
@@ -78,10 +93,12 @@ export const makeState = (): Types.State => ({
   infoPanelSelectedTab: undefined,
   infoPanelShowing: false,
   lastCoord: undefined,
+  markedAsUnreadMap: new Map(), // store a bit if we've marked this thread as unread so we don't mark as read when navgiating away
   maybeMentionMap: new Map(),
   messageCenterOrdinals: new Map(), // ordinals to center threads on,
   messageMap: new Map(), // messages in a thread,
   messageOrdinals: new Map(), // ordered ordinals in a thread,
+  messageTypeMap: new Map(),
   metaMap: new Map(), // metadata about a thread, There is a special node for the pending conversation,
   moreToLoadMap: new Map(), // if we have more data to load,
   mutedMap: new Map(),
@@ -91,8 +108,6 @@ export const makeState = (): Types.State => ({
   paymentConfirmInfo: undefined,
   paymentStatusMap: new Map(),
   pendingOutboxToOrdinal: new Map(), // messages waiting to be sent,
-  prependTextMap: new Map(),
-  quote: undefined,
   replyToMap: new Map(),
   shouldDeleteZzzJourneycard: new Map(),
   smallTeamBadgeCount: 0,
@@ -147,40 +162,6 @@ export const makeAttachmentViewInfo = (): Types.AttachmentViewInfo => ({
   status: 'loading',
 })
 
-export const makeAudioRecordingInfo = (): Types.AudioRecordingInfo => ({
-  isLocked: false,
-  outboxID: new Buffer('hex'),
-  path: '',
-  recordStart: Date.now(),
-  status: Types.AudioRecordingStatus.INITIAL,
-})
-
-export const showAudioRecording = (audioRecording: Types.AudioRecordingInfo | undefined) => {
-  return !(
-    !audioRecording ||
-    audioRecording.status === Types.AudioRecordingStatus.INITIAL ||
-    audioRecording.status === Types.AudioRecordingStatus.STOPPED ||
-    audioRecording.status === Types.AudioRecordingStatus.STAGED ||
-    audioRecording.status === Types.AudioRecordingStatus.CANCELLED
-  )
-}
-
-export const isStoppedAudioRecordingStatus = (status: Types.AudioRecordingStatus) => {
-  return (
-    status === Types.AudioRecordingStatus.STOPPED ||
-    status === Types.AudioRecordingStatus.STAGED ||
-    status === Types.AudioRecordingStatus.CANCELLED
-  )
-}
-
-export const audioRecordingDuration = (audioRecording: Types.AudioRecordingInfo) => {
-  return (audioRecording.recordEnd || audioRecording.recordStart) - audioRecording.recordStart
-}
-
-export const isCancelledAudioRecording = (audioRecording: Types.AudioRecordingInfo | undefined) => {
-  return audioRecording && audioRecording.status === Types.AudioRecordingStatus.CANCELLED
-}
-
 export const getInboxSearchSelected = (inboxSearch: Types.InboxSearchInfo) => {
   const {selectedIndex, nameResults, botsResults, openTeamsResults, textResults} = inboxSearch
   const firstTextResultIdx = botsResults.length + openTeamsResults.length + nameResults.length
@@ -216,7 +197,7 @@ export const getInboxSearchSelected = (inboxSearch: Types.InboxSearchInfo) => {
 export const getThreadSearchInfo = (state: TypedState, conversationIDKey: Types.ConversationIDKey) =>
   state.chat2.threadSearchInfoMap.get(conversationIDKey) || makeThreadSearchInfo()
 
-const emptyOrdinals = new Set<Types.Ordinal>()
+const emptyOrdinals = new Array<Types.Ordinal>()
 export const getMessageOrdinals = (state: TypedState, id: Types.ConversationIDKey) =>
   state.chat2.messageOrdinals.get(id) || emptyOrdinals
 export const getMessageCenterOrdinal = (state: TypedState, id: Types.ConversationIDKey) =>
@@ -225,17 +206,25 @@ export const getMessage = (
   state: TypedState,
   id: Types.ConversationIDKey,
   ordinal: Types.Ordinal
-): Types.Message | null => {
-  const map = state.chat2.messageMap.get(id)
-  return (map && map.get(ordinal)) || null
+): Types.Message | null => state.chat2.messageMap.get(id)?.get(ordinal) ?? null
+
+export const isTextOrAttachment = (
+  message: Types.Message
+): message is Types.Message | Types.MessageAttachment => {
+  return message.type === 'text' || message.type === 'attachment'
 }
+
 export const isMessageWithReactions = (message: Types.Message): message is Types.MessagesWithReactions => {
-  return !(
-    message.type === 'placeholder' ||
-    message.type === 'deleted' ||
-    message.type === 'systemJoined' ||
-    message.type === 'systemLeft' ||
-    message.type === 'journeycard'
+  return (
+    !(
+      message.type === 'placeholder' ||
+      message.type === 'deleted' ||
+      message.type === 'systemJoined' ||
+      message.type === 'systemLeft' ||
+      message.type === 'journeycard'
+    ) &&
+    !message.exploded &&
+    !message.errorReason
   )
 }
 export const getMessageKey = (message: Types.Message) =>
@@ -281,21 +270,6 @@ export const getEditInfo = (state: TypedState, id: Types.ConversationIDKey) => {
     default:
       return null
   }
-}
-
-export const getQuoteInfo = (state: TypedState, id: Types.ConversationIDKey) => {
-  const quote = state.chat2.quote
-  // Return null if we're not on the target conversation.
-  if (!quote || quote.targetConversationIDKey !== id) {
-    return null
-  }
-
-  const message = getMessage(state, quote.sourceConversationIDKey, quote.ordinal)
-  if (!message || message.type !== 'text') {
-    return null
-  }
-
-  return {counter: quote.counter, text: formatTextForQuoting(message.text.stringValue())}
 }
 
 export const getTyping = (state: TypedState, id: Types.ConversationIDKey) =>
@@ -483,29 +457,27 @@ export const isAssertion = (username: string) => username.includes('@')
 const numMessagesOnInitialLoad = isMobile ? 20 : 100
 const numMessagesOnScrollback = isMobile ? 100 : 100
 
-export const flipPhaseToString = (phase: number) => {
-  switch (phase) {
-    case RPCChatTypes.UICoinFlipPhase.commitment:
-      return 'commitments'
-    case RPCChatTypes.UICoinFlipPhase.reveals:
-      return 'secrets'
-    case RPCChatTypes.UICoinFlipPhase.complete:
-      return 'complete'
-    default:
-      return 'loading'
+export const clampImageSize = (width: number, height: number, maxWidth: number, maxHeight: number) => {
+  const aspectRatio = width / height
+
+  let newWidth = width
+  let newHeight = height
+
+  if (newWidth > maxWidth) {
+    newWidth = maxWidth
+    newHeight = newWidth / aspectRatio
+  }
+
+  if (newHeight > maxHeight) {
+    newHeight = maxHeight
+    newWidth = newHeight * aspectRatio
+  }
+
+  return {
+    height: Math.ceil(newHeight),
+    width: Math.ceil(newWidth),
   }
 }
-
-export const clampImageSize = (width: number, height: number, maxSize: number) =>
-  height > width
-    ? {
-        height: clamp(height || 0, 0, maxSize),
-        width: (clamp(height || 0, 0, maxSize) * width) / (height || 1),
-      }
-    : {
-        height: (clamp(width || 0, 0, maxSize) * height) / (width || 1),
-        width: clamp(width || 0, 0, maxSize),
-      }
 
 export const zoomImage = (width: number, height: number, maxThumbSize: number) => {
   const dims =
@@ -629,7 +601,6 @@ export {
   getRowStyles,
   getTeams,
   inboxUIItemToConversationMeta,
-  isDecryptingSnippet,
   makeConversationMeta,
   shouldShowWalletsIcon,
   timestampToString,
@@ -640,7 +611,6 @@ export {
 
 export {
   allMessageTypes,
-  enoughTimeBetweenMessages,
   getClientPrev,
   getDeletableByDeleteHistory,
   getMapUnfurl,

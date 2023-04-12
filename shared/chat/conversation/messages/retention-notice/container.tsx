@@ -1,50 +1,42 @@
+import * as React from 'react'
 import * as Chat2Gen from '../../../../actions/chat2-gen'
-import * as ChatTypes from '../../../../constants/types/chat2'
+import type * as ChatTypes from '../../../../constants/types/chat2'
 import * as Container from '../../../../util/container'
 import * as TeamConstants from '../../../../constants/teams'
 import RetentionNotice from '.'
 import {getMeta} from '../../../../constants/chat2'
 import {makeRetentionNotice} from '../../../../util/teams'
+import shallowEqual from 'shallowequal'
 
-type OwnProps = {
-  conversationIDKey: ChatTypes.ConversationIDKey
-  measure: (() => void) | null
-}
+type OwnProps = {conversationIDKey: ChatTypes.ConversationIDKey}
 
-export default Container.connect(
-  (state, ownProps: OwnProps) => {
-    const meta = getMeta(state, ownProps.conversationIDKey)
-    let canChange = true
-    if (meta.teamType !== 'adhoc') {
-      canChange = TeamConstants.getCanPerformByID(state, meta.teamID).setRetentionPolicy
-    }
-    return {
-      _teamType: meta.teamType,
-      canChange,
-      policy: meta.retentionPolicy,
-      teamPolicy: meta.teamRetentionPolicy,
-    }
-  },
-  (dispatch, ownProps: OwnProps) => ({
-    onChange: () =>
-      dispatch(
-        Chat2Gen.createShowInfoPanel({
-          conversationIDKey: ownProps.conversationIDKey,
-          show: true,
-          tab: 'settings',
-        })
-      ),
-  }),
-  (stateProps, dispatchProps, ownProps: OwnProps) => {
-    const {policy, canChange, teamPolicy, _teamType} = stateProps
-    const explanation = makeRetentionNotice(policy, teamPolicy, _teamType) ?? undefined
-    return {
-      canChange,
-      explanation,
-      measure: ownProps.measure ?? undefined,
-      onChange: dispatchProps.onChange,
-      policy,
-      teamPolicy,
-    }
+const RetentionNoticeContainer = React.memo(function RetentionNoticeContainer(p: OwnProps) {
+  const {conversationIDKey} = p
+
+  const {canChange, teamType, retentionPolicy, teamRetentionPolicy} = Container.useSelector(state => {
+    const meta = getMeta(state, conversationIDKey)
+    const canChange =
+      meta.teamType !== 'adhoc'
+        ? TeamConstants.getCanPerformByID(state, meta.teamID).setRetentionPolicy
+        : true
+    const {teamType, retentionPolicy, teamRetentionPolicy} = meta
+    return {canChange, retentionPolicy, teamRetentionPolicy, teamType}
+  }, shallowEqual)
+
+  const dispatch = Container.useDispatch()
+  const onChange = React.useCallback(
+    () => dispatch(Chat2Gen.createShowInfoPanel({conversationIDKey, show: true, tab: 'settings'})),
+    [dispatch, conversationIDKey]
+  )
+  const explanation = makeRetentionNotice(retentionPolicy, teamRetentionPolicy, teamType) ?? undefined
+
+  const props = {
+    canChange,
+    explanation,
+    onChange,
+    policy: retentionPolicy,
+    teamPolicy: teamRetentionPolicy,
   }
-)(RetentionNotice)
+  return <RetentionNotice {...props} />
+})
+export default RetentionNoticeContainer

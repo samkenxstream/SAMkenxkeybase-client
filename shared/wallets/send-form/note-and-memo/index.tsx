@@ -2,8 +2,8 @@ import * as React from 'react'
 import * as Kb from '../../../common-adapters'
 import * as Styles from '../../../styles'
 import * as ChatConstants from '../../../constants/chat2'
-import {EmojiPickerDesktop} from '../../../chat/conversation/messages/react-button/emoji-picker/container'
-import {RenderableEmoji} from '../../../util/emoji'
+import {EmojiPickerDesktop} from '../../../chat/emoji-picker/container'
+import type {RenderableEmoji} from '../../../util/emoji'
 
 type SecretNoteProps = {
   secretNote: string // Initial value only

@@ -1,8 +1,8 @@
 import * as React from 'react'
-import LottieView from 'lottie-react-native'
 import Box from './box'
-import {useDepChangeEffect} from '../util/container'
+import LottieView from 'lottie-react-native'
 import type {Props} from './animation'
+import {useDepChangeEffect} from '../util/container'
 type AnimationObject = {
   v: string
   fr: number
@@ -17,13 +17,9 @@ type AnimationObject = {
 }
 type AOM = {[key: string]: AnimationObject}
 
-const Animation = React.memo((props: Props) => {
+const Animation = React.memo(function Animation(props: Props) {
   const {animationType} = props
-  const dataRef = React.useRef<AOM>()
-  if (!dataRef.current) {
-    dataRef.current = require('./animation-data.json') as AOM
-  }
-
+  const dataRef = React.useRef<AOM>(require('./animation-data.json'))
   const source = React.useRef<AnimationObject>(dataRef.current[animationType])
   useDepChangeEffect(() => {
     const data = dataRef.current?.[animationType]
@@ -34,9 +30,11 @@ const Animation = React.memo((props: Props) => {
     source.current = data
   }, [animationType])
 
+  const allowLoop = true
+
   return (
     <Box style={props.containerStyle}>
-      <LottieView autoPlay={true} loop={true} source={source.current} style={props.style} />
+      <LottieView autoPlay={true} loop={allowLoop} source={source.current} style={props.style} />
     </Box>
   )
 })

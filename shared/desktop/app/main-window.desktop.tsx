@@ -15,7 +15,7 @@ import KB2 from '../../util/electron.desktop'
 const {env} = KB2.constants
 const {mainWindowDispatch} = KB2.functions
 
-let htmlFile = `${htmlPrefix}${assetRoot}main${__DEV__ ? '.dev' : ''}.html`
+let htmlFile = `${htmlPrefix}${assetRoot}main${__FILE_SUFFIX__}.html`
 
 const setupDefaultSession = () => {
   const ds = Electron.session.defaultSession
@@ -273,7 +273,7 @@ export const closeWindows = () => {
   hideDockIcon()
 }
 
-export default () => {
+const MainWindow = () => {
   setupDefaultSession()
   loadWindowState()
 
@@ -292,7 +292,7 @@ export default () => {
       devTools: showDevTools,
       nodeIntegration: false,
       nodeIntegrationInWorker: false,
-      preload: `${assetRoot}preload${__DEV__ ? '.dev' : ''}.bundle.js`,
+      preload: `${assetRoot}preload${__FILE_SUFFIX__}.bundle.js`,
       spellcheck: !disableSpellCheck,
     },
     width: windowState.width,
@@ -300,7 +300,7 @@ export default () => {
     y: windowState.y,
     ...(isDarwin ? {titleBarStyle: 'hiddenInset'} : {}),
   })
-  if (__DEV__) {
+  if (__DEV__ || __PROFILE__) {
     setupDevToolsExtensions()
   }
 
@@ -336,3 +336,4 @@ export const getMainWindow = (): Electron.BrowserWindow | null => {
   const w = Electron.BrowserWindow.getAllWindows().find(w => w.webContents.getURL().includes('/main.'))
   return w || null
 }
+export default MainWindow

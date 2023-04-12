@@ -3,26 +3,8 @@ import * as FsGen from '../fs-gen'
 import * as Constants from '../../constants/fs'
 import * as RPCTypes from '../../constants/types/rpc-gen'
 import * as Container from '../../util/container'
-import {PermissionsAndroid} from 'react-native'
 import nativeInit from './common.native'
-import {NativeModules} from '../../util/native-modules.native'
-
-export const ensureDownloadPermissionPromise = async () => {
-  const permissionStatus = await PermissionsAndroid.request(
-    PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-    {
-      buttonNegative: 'Cancel',
-      buttonNeutral: 'Ask me later',
-      buttonPositive: 'OK',
-      message: 'Keybase needs access to your storage so we can download a file to it',
-      title: 'Keybase Storage Permission',
-    }
-  )
-
-  if (permissionStatus !== 'granted') {
-    throw new Error('Unable to acquire storage permissions')
-  }
-}
+import {androidAddCompleteDownload, fsCacheDir, fsDownloadDir} from 'react-native-kb'
 
 const finishedRegularDownloadIDs = new Set<string>()
 
@@ -50,7 +32,7 @@ const finishedRegularDownload = async (
     return null
   }
   try {
-    await NativeModules.Utils.androidAddCompleteDownload?.({
+    await androidAddCompleteDownload({
       description: `Keybase downloaded ${downloadInfo.filename}`,
       mime: mimeType,
       path: downloadState.localPath,
@@ -68,8 +50,8 @@ const configureDownload = async () =>
   RPCTypes.SimpleFSSimpleFSConfigureDownloadRpcPromise({
     // Android's cache dir is (when I tried) [app]/cache but Go side uses
     // [app]/.cache by default, which can't be used for sharing to other apps.
-    cacheDirOverride: NativeModules.KeybaseEngine.fsCacheDir,
-    downloadDirOverride: NativeModules.KeybaseEngine.fsDownloadDir,
+    cacheDirOverride: fsCacheDir,
+    downloadDirOverride: fsDownloadDir,
   })
 
 export default function initPlatformSpecific() {

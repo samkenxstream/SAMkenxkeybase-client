@@ -1,5 +1,4 @@
 import * as ConfigGen from '../../../../actions/config-gen'
-import * as Chat2Gen from '../../../../actions/chat2-gen'
 import * as Container from '../../../../util/container'
 import * as Kb from '../../../../common-adapters'
 import * as React from 'react'
@@ -18,9 +17,11 @@ import type {Props} from './platform-input'
 import {NativeKeyboard} from '../../../../common-adapters/mobile.native'
 import {formatDurationShort} from '../../../../util/timestamp'
 import {isOpen} from '../../../../util/keyboard'
-import {parseUri, launchCameraAsync, launchImageLibraryAsync} from '../../../../util/expo-image-picker'
+import {parseUri, launchCameraAsync, launchImageLibraryAsync} from '../../../../util/expo-image-picker.native'
 import {standardTransformer} from '../suggestors/common'
 import {useSuggestors} from '../suggestors'
+import {type PastedFile} from '@mattermost/react-native-paste-input'
+import {MaxInputAreaContext} from '../../input-area/normal/max-input-area-context'
 import {
   createAnimatedComponent,
   skipAnimations,
@@ -28,6 +29,8 @@ import {
   useAnimatedStyle,
   withTiming,
 } from '../../../../common-adapters/reanimated'
+import logger from '../../../../logger'
+import {AudioSendWrapper} from '../../../audio/audio-send.native'
 
 const singleLineHeight = 36
 const threeLineHeight = 78
@@ -37,7 +40,7 @@ type MenuType = 'exploding' | 'filepickerpopup' | 'moremenu'
 
 type ButtonsProps = Pick<
   Props,
-  'conversationIDKey' | 'onSelectionChange' | 'explodingModeSeconds' | 'isExploding' | 'cannotWrite'
+  'conversationIDKey' | 'explodingModeSeconds' | 'isExploding' | 'cannotWrite' | 'onCancelEditing'
 > & {
   hasText: boolean
   isEditing: boolean
@@ -45,11 +48,15 @@ type ButtonsProps = Pick<
   insertText: (s: string) => void
   onSubmit: () => void
   ourShowMenu: (m: MenuType) => void
+  onSelectionChange?: (p: {start: number | null; end: number | null}) => void
+  showAudioSend: boolean
+  setShowAudioSend: (s: boolean) => void
 }
 
-const Buttons = (p: ButtonsProps) => {
-  const {conversationIDKey, insertText, ourShowMenu, onSubmit} = p
+const Buttons = React.memo(function Buttons(p: ButtonsProps) {
+  const {conversationIDKey, insertText, ourShowMenu, onSubmit, onCancelEditing} = p
   const {hasText, isEditing, isExploding, explodingModeSeconds, cannotWrite, toggleShowingMenu} = p
+  const {showAudioSend, setShowAudioSend} = p
 
   const openFilePicker = React.useCallback(() => {
     ourShowMenu('filepickerpopup')
@@ -64,16 +71,12 @@ const Buttons = (p: ButtonsProps) => {
 
   const dispatch = Container.useDispatch()
 
-  const onCancelEditing = React.useCallback(() => {
-    dispatch(Chat2Gen.createMessageSetEditing({conversationIDKey, ordinal: null}))
-  }, [conversationIDKey, dispatch])
-
   const openEmojiPicker = React.useCallback(() => {
     dispatch(
       RouteTreeGen.createNavigateAppend({
         path: [
           {
-            props: {conversationIDKey, onPickAction: insertText},
+            props: {conversationIDKey, onPickAction: (emoji: string) => insertText(emoji + ' ')},
             selected: 'chatChooseEmoji',
           },
         ],
@@ -117,7 +120,11 @@ const Buttons = (p: ButtonsProps) => {
       {!hasText && (
         <Kb.Box2 direction="horizontal" alignItems="flex-end">
           <Kb.Icon onClick={openFilePicker} padding="tiny" type="iconfont-camera" fixOverdraw={true} />
-          <AudioRecorder conversationIDKey={conversationIDKey} iconStyle={styles.audioRecorderIconStyle} />
+          <AudioRecorder
+            conversationIDKey={conversationIDKey}
+            showAudioSend={showAudioSend}
+            setShowAudioSend={setShowAudioSend}
+          />
           <Kb.Icon onClick={openMoreMenu} padding="tiny" type="iconfont-add" fixOverdraw={true} />
         </Kb.Box2>
       )}
@@ -134,16 +141,16 @@ const Buttons = (p: ButtonsProps) => {
       )}
     </Kb.Box2>
   )
-}
+})
 
 const AnimatedIcon = createAnimatedComponent(Kb.Icon)
 const AnimatedExpand = (() => {
   if (skipAnimations) {
-    return React.memo(() => {
+    return React.memo(function AnimatedExpand() {
       return null
     })
   } else {
-    return React.memo((p: {expandInput: () => void; expanded: boolean}) => {
+    return React.memo(function AnimatedExpand(p: {expandInput: () => void; expanded: boolean}) {
       const {expandInput, expanded} = p
       const offset = useSharedValue(expanded ? 1 : 0)
       const topStyle: any = useAnimatedStyle(() => ({
@@ -200,21 +207,17 @@ const ChatFilePicker = (p: ChatFilePickerProps) => {
   const launchNativeImagePicker = React.useCallback(
     (mediaType: 'photo' | 'video' | 'mixed', location: string) => {
       const handleSelection = (result: ImagePicker.ImagePickerResult) => {
-        if (result.cancelled || !conversationIDKey) {
+        if (result.canceled || (result.assets.length ?? 0) == 0 || !conversationIDKey) {
           return
         }
-        const filename = parseUri(result)
-        if (filename) {
-          const props = {
-            conversationIDKey,
-            pathAndOutboxIDs: [{outboxID: null, path: filename}],
-          }
-          dispatch(
-            RouteTreeGen.createNavigateAppend({
-              path: [{props, selected: 'chatAttachmentGetTitles'}],
-            })
-          )
-        }
+
+        const pathAndOutboxIDs = result.assets.map(p => ({outboxID: null, path: parseUri(p)}))
+        const props = {conversationIDKey, pathAndOutboxIDs}
+        dispatch(
+          RouteTreeGen.createNavigateAppend({
+            path: [{props, selected: 'chatAttachmentGetTitles'}],
+          })
+        )
       }
 
       const onFilePickerError = (error: Error) => {
@@ -227,7 +230,7 @@ const ChatFilePicker = (p: ChatFilePickerProps) => {
             .catch(error => onFilePickerError(new Error(error)))
           break
         case 'library':
-          launchImageLibraryAsync(mediaType)
+          launchImageLibraryAsync(mediaType, true, true)
             .then(handleSelection)
             .catch(error => onFilePickerError(new Error(error)))
           break
@@ -247,18 +250,16 @@ const ChatFilePicker = (p: ChatFilePickerProps) => {
 }
 
 const PlatformInput = (p: Props) => {
+  const [showAudioSend, setShowAudioSend] = React.useState(false)
   const [height, setHeight] = React.useState(0)
   const [expanded, setExpanded] = React.useState(false) // updates immediately, used for the icon etc
   const inputRef = React.useRef<Kb.PlainInput | null>(null)
+  const silentInput = React.useRef<Kb.PlainInput | null>(null)
   const {popup, onChangeText, onBlur, onSelectionChange, onFocus} = useSuggestors({
     conversationIDKey: p.conversationIDKey,
     expanded,
     inputRef,
-    onBlur: p.onBlur,
     onChangeText: p.onChangeText,
-    onFocus: p.onFocus,
-    onKeyDown: p.onKeyDown,
-    onSelectionChange: p.onSelectionChange,
     suggestBotCommandsUpdateStatus: p.suggestBotCommandsUpdateStatus,
     suggestionListStyle: Styles.collapseStyles([styles.suggestionList, !!height && {marginBottom: height}]),
     suggestionOverlayStyle: p.suggestionOverlayStyle,
@@ -268,8 +269,8 @@ const PlatformInput = (p: Props) => {
     ]),
   })
   const {cannotWrite, conversationIDKey, isEditing, isExploding} = p
-  const {onSubmit, explodingModeSeconds, hintText} = p
-  const {inputSetRef, showTypingStatus, maxInputArea} = p
+  const {onSubmit, explodingModeSeconds, hintText, onCancelEditing} = p
+  const {inputSetRef, showTypingStatus} = p
 
   const lastText = React.useRef('')
   const whichMenu = React.useRef<MenuType | undefined>()
@@ -280,15 +281,40 @@ const PlatformInput = (p: Props) => {
     setExpanded(nextState)
   }, [expanded, setExpanded])
 
-  const onSubmit2 = React.useCallback(() => {
-    const text = lastText.current
+  const reallySend = React.useCallback(() => {
+    const text = inputRef.current?.value
     if (text) {
       onSubmit(text)
       if (expanded) {
         toggleExpandInput()
       }
     }
-  }, [lastText, onSubmit, expanded, toggleExpandInput])
+  }, [expanded, onSubmit, toggleExpandInput])
+
+  // on ios we want to have the autocorrect fill in (especially if its the last word) so we must lose focus
+  // in order to not have the keyboard flicker we move focus to a hidden input and back, then submit
+  const submitQueued = React.useRef(false)
+  const onQueueSubmit = React.useCallback(() => {
+    const text = lastText.current
+    if (text) {
+      submitQueued.current = true
+      if (Container.isIOS) {
+        silentInput.current?.focus()
+        inputRef.current?.focus()
+      } else {
+        reallySend()
+      }
+    }
+  }, [reallySend])
+
+  const onFocusAndMaybeSubmit = React.useCallback(() => {
+    // need to submit?
+    if (Container.isIOS && submitQueued.current) {
+      submitQueued.current = false
+      reallySend()
+    }
+    onFocus()
+  }, [onFocus, reallySend])
 
   const insertText = React.useCallback(
     (toInsert: string) => {
@@ -299,10 +325,6 @@ const PlatformInput = (p: Props) => {
           standardTransformer(toInsert, {position: {end, start}, text}, true),
         true
       )
-      // TODO likely don't need this with nav 6
-      setTimeout(() => {
-        i?.focus()
-      }, 200)
     },
     [inputRef]
   )
@@ -315,7 +337,7 @@ const PlatformInput = (p: Props) => {
     HWKeyboardEvent.onHWKeyPressed((hwKeyEvent: any) => {
       switch (hwKeyEvent.pressedKey) {
         case 'enter':
-          Styles.isIOS || !isOpen() ? onSubmit2() : insertText('\n')
+          Styles.isIOS || !isOpen() ? onQueueSubmit() : insertText('\n')
           break
         case 'shift-enter':
           insertText('\n')
@@ -324,20 +346,17 @@ const PlatformInput = (p: Props) => {
     return () => {
       HWKeyboardEvent.removeOnHWKeyPressed()
     }
-  }, [onSubmit2, insertText])
+  }, [onQueueSubmit, insertText])
 
-  const {
-    popup: menu,
-    showingPopup,
-    toggleShowingPopup,
-  } = Kb.usePopup(
-    attachTo => {
+  const makePopup = React.useCallback(
+    (p: Kb.Popup2Parms) => {
+      const {attachTo, toggleShowingPopup} = p
       switch (whichMenu.current) {
         case 'filepickerpopup':
           return (
             <ChatFilePicker
               attachTo={attachTo}
-              showingPopup={showingPopup}
+              showingPopup={true}
               toggleShowingPopup={toggleShowingPopup}
               conversationIDKey={conversationIDKey}
             />
@@ -347,7 +366,7 @@ const PlatformInput = (p: Props) => {
             <MoreMenuPopup
               conversationIDKey={conversationIDKey}
               onHidden={toggleShowingPopup}
-              visible={showingPopup}
+              visible={true}
             />
           )
         default:
@@ -356,13 +375,15 @@ const PlatformInput = (p: Props) => {
               attachTo={attachTo}
               conversationIDKey={conversationIDKey}
               onHidden={toggleShowingPopup}
-              visible={showingPopup}
+              visible={true}
             />
           )
       }
     },
     [conversationIDKey]
   )
+
+  const {popup: menu, toggleShowingPopup} = Kb.usePopup2(makePopup)
 
   const ourShowMenu = React.useCallback(
     (menu: MenuType) => {
@@ -374,93 +395,151 @@ const PlatformInput = (p: Props) => {
     [whichMenu, toggleShowingPopup]
   )
 
+  const openExplodingMenu = React.useCallback(() => {
+    ourShowMenu('exploding')
+  }, [ourShowMenu])
+
+  const dispatch = Container.useDispatch()
+  const onPasteImage = React.useCallback(
+    (error: string | null | undefined, files: Array<PastedFile>) => {
+      try {
+        if (error) return
+        const pathAndOutboxIDs = files.reduce<Array<Types.PathAndOutboxID>>((arr, f) => {
+          // @ts-ignore actually exists!
+          if (!f.error) {
+            const filePrefixLen = 'file://'.length
+            const uriLen = f.uri?.length ?? 0
+            if (uriLen > filePrefixLen) {
+              arr.push({outboxID: null, path: f.uri.substring(filePrefixLen)})
+            }
+          }
+          return arr
+        }, [])
+        if (pathAndOutboxIDs.length) {
+          dispatch(
+            RouteTreeGen.createNavigateAppend({
+              path: [{props: {conversationIDKey, pathAndOutboxIDs}, selected: 'chatAttachmentGetTitles'}],
+            })
+          )
+        }
+      } catch (e) {
+        logger.info('onPasteImage error', e)
+      }
+    },
+    [conversationIDKey, dispatch]
+  )
+
+  const onLayout = React.useCallback((p: LayoutEvent) => {
+    const {nativeEvent} = p
+    const {layout} = nativeEvent
+    const {height} = layout
+    setHeight(height)
+  }, [])
+
+  const onAnimatedInputRef = React.useCallback(
+    (ref: Kb.PlainInput | null) => {
+      inputSetRef.current = ref
+      inputRef.current = ref
+    },
+    [inputSetRef, inputRef]
+  )
+  const aiOnChangeText = React.useCallback(
+    (text: string) => {
+      setHasText(!!text)
+      lastText.current = text
+      onChangeText(text)
+    },
+    [setHasText, onChangeText]
+  )
+
   return (
-    <Kb.Box2
-      direction="vertical"
-      fullWidth={true}
-      onLayout={(p: LayoutEvent) => {
-        const {nativeEvent} = p
-        const {layout} = nativeEvent
-        const {height} = layout
-        setHeight(height)
-      }}
-    >
-      {popup}
-      {menu}
-      {showTypingStatus && !popup && <Typing conversationIDKey={conversationIDKey} />}
-      <Kb.Box2
-        direction="vertical"
-        style={Styles.collapseStyles([styles.container, isExploding && styles.explodingContainer])}
-        fullWidth={true}
-      >
-        <Kb.Box2 direction="horizontal" fullWidth={true} style={styles.inputContainer}>
-          <AnimatedInput
-            autoCorrect={true}
-            autoCapitalize="sentences"
-            disabled={cannotWrite ?? false}
-            placeholder={hintText}
-            maxInputArea={maxInputArea}
-            multiline={true}
-            onBlur={onBlur}
-            onFocus={onFocus}
-            // TODO: Call onCancelQuoting on text change or selection
-            // change to match desktop.
-            onChangeText={(text: string) => {
-              setHasText(!!text)
-              lastText.current = text
-              onChangeText(text)
-            }}
+    <>
+      <Kb.Box2 direction="vertical" fullWidth={true} onLayout={onLayout} style={styles.outerContainer}>
+        {popup}
+        {menu}
+        {showTypingStatus && !popup && <Typing conversationIDKey={conversationIDKey} />}
+        <Kb.Box2
+          direction="vertical"
+          style={Styles.collapseStyles([styles.container, isExploding && styles.explodingContainer])}
+          fullWidth={true}
+        >
+          <Kb.Box2 direction="horizontal" fullWidth={true} style={styles.inputContainer}>
+            {/* in order to get auto correct submit working we move focus to this and then back so we can 'blur' without losing keyboard */}
+            <Kb.PlainInput key="silent" ref={silentInput} style={styles.hidden} />
+            <AnimatedInput
+              allowImagePaste={true}
+              onPasteImage={onPasteImage}
+              autoCorrect={true}
+              autoCapitalize="sentences"
+              disabled={cannotWrite ?? false}
+              placeholder={hintText}
+              multiline={true}
+              onBlur={onBlur}
+              onFocus={onFocusAndMaybeSubmit}
+              onChangeText={aiOnChangeText}
+              onSelectionChange={onSelectionChange}
+              ref={onAnimatedInputRef}
+              style={styles.input}
+              textType="Body"
+              rowsMin={1}
+              expanded={expanded}
+            />
+            <AnimatedExpand expandInput={toggleExpandInput} expanded={expanded} />
+          </Kb.Box2>
+          <Buttons
+            conversationIDKey={conversationIDKey}
+            insertText={insertText}
+            ourShowMenu={ourShowMenu}
+            onCancelEditing={onCancelEditing}
             onSelectionChange={onSelectionChange}
-            ref={(ref: null | Kb.PlainInput) => {
-              inputSetRef(ref)
-              inputRef.current = ref
-            }}
-            style={styles.input}
-            textType="Body"
-            rowsMin={1}
-            expanded={expanded}
+            onSubmit={onQueueSubmit}
+            hasText={hasText}
+            isEditing={isEditing}
+            isExploding={isExploding}
+            explodingModeSeconds={explodingModeSeconds}
+            cannotWrite={cannotWrite}
+            toggleShowingMenu={openExplodingMenu}
+            showAudioSend={showAudioSend}
+            setShowAudioSend={setShowAudioSend}
           />
-          <AnimatedExpand expandInput={toggleExpandInput} expanded={expanded} />
         </Kb.Box2>
-        <Buttons
-          conversationIDKey={conversationIDKey}
-          insertText={insertText}
-          ourShowMenu={ourShowMenu}
-          onSelectionChange={onSelectionChange}
-          onSubmit={onSubmit2}
-          hasText={hasText}
-          isEditing={isEditing}
-          isExploding={isExploding}
-          explodingModeSeconds={explodingModeSeconds}
-          cannotWrite={cannotWrite}
-          toggleShowingMenu={() => ourShowMenu('exploding')}
-        />
       </Kb.Box2>
-    </Kb.Box2>
+      {showAudioSend && (
+        <Kb.Box2 fullHeight={true} fullWidth={true} direction="vertical" style={styles.sendWrapper}>
+          <AudioSendWrapper />
+        </Kb.Box2>
+      )}
+    </>
   )
 }
 
 const AnimatedPlainInput = createAnimatedComponent(Kb.PlainInput)
+
 const AnimatedInput = (() => {
   if (skipAnimations) {
-    return React.forwardRef<any, any>((p: any, ref) => {
-      const {expanded, ...rest} = p
-      return <AnimatedPlainInput {...rest} ref={ref} style={[rest.style]} />
-    })
+    return React.memo(
+      React.forwardRef<any, any>(function AnimatedInput(p: any, ref) {
+        const {expanded, ...rest} = p
+        return <AnimatedPlainInput {...rest} ref={ref} style={[rest.style]} />
+      })
+    )
   } else {
-    return React.forwardRef<any, any>((p: any, ref) => {
-      const {maxInputArea, expanded, ...rest} = p
-      const offset = useSharedValue(expanded ? 1 : 0)
-      const maxHeight = maxInputArea - inputAreaHeight - 15
-      const as = useAnimatedStyle(() => ({
-        maxHeight: withTiming(offset.value ? maxHeight : threeLineHeight),
-        minHeight: withTiming(offset.value ? maxHeight : singleLineHeight),
-      }))
-      React.useEffect(() => {
-        offset.value = expanded ? 1 : 0
-      }, [expanded, offset])
-      return <AnimatedPlainInput {...rest} ref={ref} style={[rest.style, as]} />
-    })
+    return React.memo(
+      React.forwardRef<any, any>(function AnimatedInput(p: any, ref) {
+        const maxInputArea = React.useContext(MaxInputAreaContext)
+        const {expanded, ...rest} = p
+        const offset = useSharedValue(expanded ? 1 : 0)
+        const maxHeight = maxInputArea - inputAreaHeight - 15
+        const as = useAnimatedStyle(() => ({
+          maxHeight: withTiming(offset.value ? maxHeight : threeLineHeight),
+          minHeight: withTiming(offset.value ? maxHeight : singleLineHeight),
+        }))
+        React.useEffect(() => {
+          offset.value = expanded ? 1 : 0
+        }, [expanded, offset])
+        return <AnimatedPlainInput {...rest} ref={ref} style={[rest.style, as]} />
+      })
+    )
   }
 })()
 
@@ -471,7 +550,6 @@ const styles = Styles.styleSheetCreate(
         flexShrink: 0,
         minHeight: 32,
       },
-      audioRecorderIconStyle: {padding: Styles.globalMargins.tiny},
       container: {
         alignItems: 'center',
         backgroundColor: Styles.globalColors.fastBlank,
@@ -518,6 +596,7 @@ const styles = Styles.styleSheetCreate(
         justifyContent: 'center',
         width: 36,
       },
+      hidden: {display: 'none'},
       iconBottom: {
         bottom: 0,
         left: 1,
@@ -551,7 +630,9 @@ const styles = Styles.styleSheetCreate(
         maxHeight: '100%',
         paddingBottom: Styles.globalMargins.tiny,
       },
+      outerContainer: {position: 'relative'},
       sendBtn: {marginRight: Styles.globalMargins.tiny},
+      sendWrapper: {backgroundColor: Styles.globalColors.white_90, position: 'absolute'},
       suggestionList: Styles.platformStyles({
         isMobile: {
           backgroundColor: Styles.globalColors.white,

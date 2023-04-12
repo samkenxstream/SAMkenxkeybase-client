@@ -1,4 +1,3 @@
-import * as React from 'react'
 import * as Kb from '../../common-adapters'
 import * as Constants from '../../constants/fs'
 import * as Types from '../../constants/types/fs'
@@ -27,26 +26,24 @@ const SyncingFolders = (props: Props) =>
     </Kb.WithTooltip>
   ) : null
 
-const mapStateToProps = state => ({
-  _syncingFoldersProgress: state.fs.overallSyncStatus.syncingFoldersProgress,
-  online: state.fs.kbfsDaemonStatus.onlineStatus !== Types.KbfsDaemonOnlineStatus.Offline,
-})
+const SyncFolders = (op: OwnProps) => {
+  const syncingFoldersProgress = Container.useSelector(
+    state => state.fs.overallSyncStatus.syncingFoldersProgress
+  )
+  const online = Container.useSelector(
+    state => state.fs.kbfsDaemonStatus.onlineStatus !== Types.KbfsDaemonOnlineStatus.Offline
+  )
+  const {negative} = op
 
-const mapDispatchToProps = () => ({})
+  if (syncingFoldersProgress.bytesTotal === 0) {
+    return <SyncingFolders progress={0} show={false} tooltip="" />
+  }
 
-const mergeProps = (s, _, o: OwnProps) => {
-  if (s._syncingFoldersProgress.bytesTotal === 0) {
-    return {progress: 0, show: false, tooltip: ''}
-  }
-  return {
-    ...o,
-    progress: s._syncingFoldersProgress.bytesFetched / s._syncingFoldersProgress.bytesTotal,
-    show: s.online,
-    tooltip: Constants.humanizeBytesOfTotal(
-      s._syncingFoldersProgress.bytesFetched,
-      s._syncingFoldersProgress.bytesTotal
-    ),
-  }
+  const progress = syncingFoldersProgress.bytesFetched / syncingFoldersProgress.bytesTotal
+  const tooltip = Constants.humanizeBytesOfTotal(
+    syncingFoldersProgress.bytesFetched,
+    syncingFoldersProgress.bytesTotal
+  )
+  return <SyncingFolders negative={negative} show={online} tooltip={tooltip} progress={progress} />
 }
-
-export default Container.connect(mapStateToProps, mapDispatchToProps, mergeProps)(SyncingFolders)
+export default SyncFolders

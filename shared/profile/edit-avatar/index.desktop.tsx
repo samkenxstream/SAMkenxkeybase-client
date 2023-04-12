@@ -11,6 +11,7 @@ import {
   VIEWPORT_CENTER,
 } from '../../common-adapters/avatar'
 import KB2 from '../../util/electron.desktop'
+import './edit-avatar.css'
 
 const {isDirectory} = KB2.functions
 
@@ -196,7 +197,7 @@ class EditAvatar extends React.Component<Props, State> {
     const scaledImageHeight = this.state.startingImageHeight * scale
     // eslint-disable-next-line
     const scaledImageWidth = this.state.startingImageWidth * scale
-    // eslint-disable-next-line
+
     const ratio = this.state.naturalImageWidth / scaledImageWidth
     const offsetLeft = clamp(
       // eslint-disable-next-line
@@ -273,7 +274,7 @@ class EditAvatar extends React.Component<Props, State> {
       AVATAR_SIZE - this.state.scaledImageHeight,
       0
     )
-    // eslint-disable-next-line
+
     const ratio = this.state.naturalImageWidth / this.state.scaledImageWidth
     // eslint-disable-next-line
     const viewingCenterX = (VIEWPORT_CENTER - this.state.offsetLeft) * ratio
@@ -351,22 +352,20 @@ class EditAvatar extends React.Component<Props, State> {
             />
           ),
         }}
-        banners={[
-          ...(this.props.error
-            ? [
-                <Kb.Banner color="red" key="propsError">
-                  {this.props.error}
-                </Kb.Banner>,
-              ]
-            : []),
-          ...(this.state.error
-            ? [
-                <Kb.Banner color="red" key="stateError">
-                  The image you uploaded could not be read. Try again with a valid PNG, JPG or GIF.
-                </Kb.Banner>,
-              ]
-            : []),
-        ]}
+        banners={
+          <>
+            {this.props.error ? (
+              <Kb.Banner color="red" key="propsError">
+                {this.props.error}
+              </Kb.Banner>
+            ) : null}
+            {this.state.error ? (
+              <Kb.Banner color="red" key="stateError">
+                The image you uploaded could not be read. Try again with a valid PNG, JPG or GIF.
+              </Kb.Banner>
+            ) : null}
+          </>
+        }
       >
         <Kb.Box
           className={Styles.classNames({dropping: this.state.dropping})}
@@ -395,11 +394,12 @@ class EditAvatar extends React.Component<Props, State> {
             </Kb.Text>{' '}
             for one.
           </Kb.Text>
-          <HoverBox
-            className={Styles.classNames({filled: this.state.hasPreview})}
+          <Kb.Box
+            className={Styles.classNames('hoverbox', {filled: this.state.hasPreview})}
             onClick={this.state.hasPreview ? null : this.filePickerOpen}
             style={{
               borderRadius: this.props.type === 'team' ? 32 : AVATAR_CONTAINER_SIZE,
+              ...hoverStyles.hoverContainer,
             }}
           >
             <input
@@ -442,7 +442,7 @@ class EditAvatar extends React.Component<Props, State> {
                 type="iconfont-camera"
               />
             )}
-          </HoverBox>
+          </Kb.Box>
           {this.state.hasPreview && (
             <input
               disabled={!this.state.hasPreview || this.props.submitting}
@@ -484,8 +484,6 @@ const hoverStyles = Styles.styleSheetCreate(
       hover: {borderColor: Styles.globalColors.black_50},
       hoverContainer: Styles.platformStyles({
         common: {
-          backgroundColor: Styles.globalColors.grey,
-          borderColor: Styles.globalColors.greyDark,
           borderStyle: 'dotted',
           borderWidth: AVATAR_BORDER_SIZE,
           height: AVATAR_CONTAINER_SIZE,
@@ -501,20 +499,6 @@ const hoverStyles = Styles.styleSheetCreate(
       }),
       hoverIcon: {color: Styles.globalColors.black_50},
     } as const)
-)
-
-const HoverBox = Styles.styled(Kb.Box)(
-  () =>
-    ({
-      '&.filled': hoverStyles.filled,
-      '&.filled:active': {cursor: '-webkit-grabbing'},
-      '&.filled:hover': hoverStyles.filledHover,
-      '&:hover': hoverStyles.hover,
-      '&:hover .icon': hoverStyles.hoverIcon,
-      '.dropping &': hoverStyles.dropping,
-      '.dropping & .icon': hoverStyles.droppingIcon,
-      ...hoverStyles.hoverContainer,
-    } as any)
 )
 
 const styles = Styles.styleSheetCreate(() => ({

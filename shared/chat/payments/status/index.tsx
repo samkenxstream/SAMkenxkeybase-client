@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as Styles from '../../../styles'
-import * as Types from '../../../constants/types/chat2'
-import * as WalletTypes from '../../../constants/types/wallets'
+import type * as Types from '../../../constants/types/chat2'
+import type * as WalletTypes from '../../../constants/types/wallets'
 import {SendPaymentPopup} from '../../conversation/messages/message-popup/payment/container'
 import PaymentStatusError from './error'
 import Text from '../../../common-adapters/text'
@@ -115,7 +115,9 @@ class PaymentStatus extends React.Component<Props, State> {
         visible={this.state.showPopup}
         paymentID={this.props.paymentID}
         position="top center"
+        ordinal={this.props.message.id}
         message={this.props.message}
+        conversationIDKey={this.props.message.conversationIDKey}
         onHidden={this._hidePopup}
       />
     )

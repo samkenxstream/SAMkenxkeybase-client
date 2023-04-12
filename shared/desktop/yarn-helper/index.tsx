@@ -6,7 +6,7 @@ import prettierCommands from './prettier'
 import {execSync} from 'child_process'
 import path from 'path'
 import fs from 'fs'
-import rimraf from 'rimraf'
+import {rimrafSync} from 'rimraf'
 
 const [, , command, ...rest] = process.argv
 
@@ -30,8 +30,11 @@ const commands = {
       fixModules()
       checkFSEvents()
       clearTSCache()
+      clearAndroidBuild()
       getMsgPack()
       patch()
+      patchIosKBLib()
+      prepareSubmodules()
     },
     help: '',
   },
@@ -52,6 +55,21 @@ const commands = {
 
 const patch = () => {
   exec('patch-package')
+}
+
+const prepareSubmodules = () => {
+  if (process.platform === 'darwin') {
+    const root = path.resolve(__dirname, '..', '..', '..', 'rnmodules')
+    const tsOverride = path.resolve(__dirname, '..', '..', 'override-d.ts')
+    fs.readdirSync(root, {withFileTypes: true}).forEach(f => {
+      if (f.isDirectory()) {
+        const full = path.resolve(root, f.name)
+        exec(`cd ${full} && yarn`)
+        // need top bring our TS over, hacky but other things were more complex
+        exec(`cp ${full}/lib/typescript/index.d.ts ${tsOverride}/${f.name}`)
+      }
+    })
+  }
 }
 
 const checkFSEvents = () => {
@@ -91,7 +109,7 @@ function exec(command: string, env?: any, options?: Object) {
 }
 
 const decorateInfo = info => {
-  let temp = {
+  const temp = {
     ...info,
     env: {
       ...process.env,
@@ -110,38 +128,75 @@ const decorateInfo = info => {
   return temp
 }
 
-const warnFail = err => err && console.warn(`Error cleaning tscache ${err}, tsc may be inaccurate.`)
-
 const getMsgPack = () => {
   if (process.platform === 'darwin') {
     const ver = '4.1.1'
+    const shasum = '3b64e37641520ea0c9d1f52f80de61ea1868b42c'
     const file = `msgpack-cxx-${ver}.tar.gz`
-    const url = `https://kbelectron.keybase.pub/misc/${file}`
+    const url = `https://github.com/msgpack/msgpack-c/releases/download/cpp-${ver}/${file}`
     const prefix = path.resolve(__dirname, '..', '..', 'node_modules')
     const dlpath = path.resolve(prefix, '.cache')
+    const shacheckcmd = `echo '${shasum} *.cache/${file}' | shasum -c`
+    const checkAndUntar = `cd node_modules ; ${shacheckcmd} && tar -xf .cache/${file}`
+    const downloadMP = `curl -L -o ${dlpath}/${file} ${url}`
+
     try {
       fs.mkdirSync(dlpath)
     } catch {}
     if (!fs.existsSync(path.resolve(dlpath, file))) {
       console.log('Missing msgpack-cpp, downloading')
-      exec(`curl -L -o ${dlpath}/${file} ${url}`)
+      exec(downloadMP)
     }
     if (!fs.existsSync(path.resolve(prefix, file))) {
       try {
-        exec(`cd node_modules ; tar -xf .cache/${file}`)
+        exec(checkAndUntar)
       } catch {
         console.log('untar failed, deleting, try building again. trying one more time')
         exec(`cd node_modules ; rm .cache/${file}`)
-        exec(`curl -L -o ${dlpath}/${file} ${url}`)
-        exec(`cd node_modules ; tar -xf .cache/${file}`)
+        exec(downloadMP)
+        exec(checkAndUntar)
       }
     }
   }
 }
 
+const patchIosKBLib = () => {
+  if (process.platform === 'darwin') {
+    const prefixes = [
+      'ios/keybase.xcframework/ios-arm64',
+      'ios/keybase.xcframework/ios-arm64_x86_64-simulator',
+    ]
+    const files = ['Keybase.objc.h', 'Universe.objc.h']
+    for (const prefix of prefixes) {
+      for (const file of files) {
+        const path = `${prefix}/Keybase.framework/Versions/Current/Headers/${file}`
+        try {
+          console.log('Patching go libs', path)
+          exec(`sed -i -e 's/@import Foundation;/#include <Foundation\\/Foundation.h>/' ${path}`)
+        } catch {
+          console.log('Patching skipped')
+        }
+      }
+    }
+  }
+}
+
+const clearAndroidBuild = () => {
+  const paths = [
+    '../../android/build',
+    '../../../rnmodules/react-native-kb/android/build',
+    '../../../rnmodules/react-native-kb/android/.cxx',
+    '../../../rnmodules/react-native-drop-view/android/build',
+  ]
+  for (const p of paths) {
+    try {
+      rimrafSync(path.resolve(__dirname, p))
+    } catch {}
+  }
+}
+
 const clearTSCache = () => {
-  const glob = path.resolve(__dirname, '..', '..', '.tsOuts', '.tsOut*')
-  rimraf(glob, {}, warnFail)
+  rimrafSync(path.resolve(__dirname, '..', '..', '.tsOuts'))
 }
 
 function main() {

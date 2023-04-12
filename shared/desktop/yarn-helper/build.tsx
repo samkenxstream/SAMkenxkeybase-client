@@ -22,12 +22,18 @@ const commands = {
       outputStats ? '--profile --json > webpack-stats.json' : ''
     }`,
   },
+  'build-profile': {
+    env: {NO_SERVER: 'true', PROFILE: 'true'},
+    help: 'Make a profile build of the js code',
+    shell: `${webpackCmd} --mode production --progress --profile`,
+  },
   'hot-server': {
     code: hotServer,
     help: 'Start the webpack hot reloading code server (needed by yarn run start-hot)',
   },
   package: {
     help: 'Package up the production js code',
+    nodeEnv: 'production',
     shell: `yarn _node ${spaceArg} desktop/package.desktop.tsx`,
   },
 }

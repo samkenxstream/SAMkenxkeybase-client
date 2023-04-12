@@ -59,16 +59,9 @@ export declare class HeaderHocWrapper extends React.Component<
 export declare class HeaderHocHeader extends React.Component<HeaderHocProps> {}
 export declare class LeftAction extends React.Component<LeftActionProps> {}
 // HeaderHoc is deprecated. navigationOptions should be used instead.
-/**
- * Deprecated. Use navigationOptions instead
- */
-declare function HeaderHoc<P extends {}>(
-  WrappedComponent: React.ComponentType<P>
-): React.ComponentType<P & HeaderHocProps>
-
-export default HeaderHoc
 
 // used in navigationOptions
 export declare class HeaderLeftArrow extends React.Component<any> {}
 export declare class HeaderLeftBlank extends React.Component<any> {}
 export declare class HeaderLeftCancel extends React.Component<any> {}
+export declare class HeaderLeftCancel2 extends React.Component<any> {}

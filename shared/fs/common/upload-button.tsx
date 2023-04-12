@@ -3,7 +3,6 @@ import * as Types from '../../constants/types/fs'
 import * as Constants from '../../constants/fs'
 import * as Kb from '../../common-adapters'
 import * as FsGen from '../../actions/fs-gen'
-import * as React from 'react'
 import * as Platforms from '../../constants/platform'
 import type * as Styles from '../../styles'
 
@@ -55,7 +54,25 @@ const mergeProps = (
 
 type UploadButtonProps = ReturnType<typeof mergeProps>
 
-const UploadButton = Kb.OverlayParentHOC((props: Kb.PropsWithOverlay<UploadButtonProps>) => {
+const UploadButton = (props: UploadButtonProps) => {
+  const {toggleShowingPopup, showingPopup, popup, popupAnchor} = Kb.usePopup(attachTo => (
+    <Kb.FloatingMenu
+      attachTo={attachTo}
+      visible={showingPopup}
+      onHidden={toggleShowingPopup}
+      items={[
+        ...(props.pickAndUploadPhoto ? [{onClick: props.pickAndUploadPhoto, title: 'Upload photo'}] : []),
+        ...(props.pickAndUploadVideo ? [{onClick: props.pickAndUploadVideo, title: 'Upload video'}] : []),
+        ...(props.openAndUploadDirectory
+          ? [{onClick: props.openAndUploadDirectory, title: 'Upload directory'}]
+          : []),
+        ...(props.openAndUploadFile ? [{onClick: props.openAndUploadFile, title: 'Upload file'}] : []),
+      ]}
+      position="bottom left"
+      closeOnSelect={true}
+    />
+  ))
+
   if (!props.canUpload) {
     return null
   }
@@ -71,58 +88,13 @@ const UploadButton = Kb.OverlayParentHOC((props: Kb.PropsWithOverlay<UploadButto
   return (
     <>
       {Platforms.isMobile ? (
-        <Kb.Icon type="iconfont-upload" padding="tiny" onClick={props.toggleShowingMenu} />
+        <Kb.Icon type="iconfont-upload" padding="tiny" onClick={toggleShowingPopup} />
       ) : (
-        <Kb.Button
-          onClick={props.toggleShowingMenu}
-          label="Upload"
-          ref={props.setAttachmentRef}
-          style={props.style}
-        />
+        <Kb.Button onClick={toggleShowingPopup} label="Upload" ref={popupAnchor} style={props.style} />
       )}
-      <Kb.FloatingMenu
-        attachTo={props.getAttachmentRef}
-        visible={props.showingMenu}
-        onHidden={props.toggleShowingMenu}
-        items={[
-          ...(props.pickAndUploadPhoto
-            ? [
-                {
-                  onClick: props.pickAndUploadPhoto,
-                  title: 'Upload photo',
-                },
-              ]
-            : []),
-          ...(props.pickAndUploadVideo
-            ? [
-                {
-                  onClick: props.pickAndUploadVideo,
-                  title: 'Upload video',
-                },
-              ]
-            : []),
-          ...(props.openAndUploadDirectory
-            ? [
-                {
-                  onClick: props.openAndUploadDirectory,
-                  title: 'Upload directory',
-                },
-              ]
-            : []),
-          ...(props.openAndUploadFile
-            ? [
-                {
-                  onClick: props.openAndUploadFile,
-                  title: 'Upload file',
-                },
-              ]
-            : []),
-        ]}
-        position="bottom left"
-        closeOnSelect={true}
-      />
+      {popup}
     </>
   )
-})
+}
 
 export default Container.connect(mapStateToProps, mapDispatchToProps, mergeProps)(UploadButton)

@@ -1,4 +1,4 @@
-import React, {PureComponent} from 'react'
+import * as React from 'react'
 import {FlatList, View} from 'react-native'
 import * as Styles from '../styles'
 import type {Props} from './list'
@@ -7,7 +7,7 @@ import noop from 'lodash/noop'
 
 const AnimatedFlatList = createAnimatedComponent(FlatList)
 
-class List<Item> extends PureComponent<Props<Item>> {
+class List<Item> extends React.PureComponent<Props<Item>> {
   static defaultProps = {
     keyboardShouldPersistTaps: 'handled',
   }
@@ -49,6 +49,7 @@ class List<Item> extends PureComponent<Props<Item>> {
             onScrollToIndexFailed={noop}
             bounces={this.props.bounces}
             contentContainerStyle={this.props.contentContainerStyle}
+            keyboardDismissMode="on-drag"
             renderItem={this._itemRender}
             data={this.props.items}
             getItemLayout={this.props.fixedHeight ? this._getItemLayout : undefined}

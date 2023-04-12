@@ -19,14 +19,14 @@ export const EncryptInput = () => {
   }, [dispatch])
 
   return (
-    <>
+    <Kb.KeyboardAvoidingView2>
       <OperationBanner operation={operation} />
       <Recipients />
       <Input operation={operation} />
       <InputActionsBar operation={operation}>
         <EncryptOptions />
       </InputActionsBar>
-    </>
+    </Kb.KeyboardAvoidingView2>
   )
 }
 
@@ -40,16 +40,6 @@ export const EncryptOutput = () => {
       <OutputActionsBar operation={operation} />
     </>
   )
-}
-
-EncryptInput.navigationOptions = {
-  headerShown: true,
-  title: 'Encrypt',
-}
-EncryptOutput.navigationOptions = {
-  headerLeft: p => <Kb.HeaderLeftCancel {...p} />,
-  headerShown: true,
-  title: 'Encrypt',
 }
 
 export default EncryptInput

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import {StylesCrossPlatform, globalMargins, CustomStyles} from '../styles'
+import {type PastedFile} from '@mattermost/react-native-paste-input'
 import {TextType} from './text'
 
 export type KeyboardType =
@@ -58,6 +59,8 @@ export type Selection = {
 export type InputStyle = CustomStyles<'padding', {}>
 
 export type Props = {
+  allowImagePaste?: boolean // mobile only
+  onPasteImage?: (error: string | null | undefined, files: Array<PastedFile>) => void // mobile only, if allowImagePaste is on
   autoFocus?: boolean
   // Enable if you want this to always have focus (desktop only)
   globalCaptureKeypress?: boolean
@@ -79,7 +82,6 @@ export type Props = {
   padding?: keyof typeof globalMargins | 0 // globalMargins does not have an option for 0
   placeholder?: string
   placeholderColor?: string
-  placeholderTextType?: TextType
   rowsMin?: number
   rowsMax?: number
   secureTextEntry?: boolean
@@ -93,7 +95,7 @@ export type Props = {
   onEnterKeyDown?: (event?: React.BaseSyntheticEvent) => void
   // Desktop only
   allowKeyboardEvents?: boolean // By default keybaord events won't fire in textarea or input elements. Adds 'mousetrap' class to enable keyboard events.
-  onClick?: (event: Event) => void
+  onClick?: () => void
   onKeyDown?: (event: React.KeyboardEvent) => void
   onKeyUp?: (event: React.KeyboardEvent) => void
   // Mobile only
@@ -149,9 +151,11 @@ export type InternalProps = {} & DefaultProps & Props
 declare class PlainInput extends React.Component<Props> {
   static defaultProps: DefaultProps
   blur: () => void
+  clear: () => void
   focus: () => void
   isFocused: () => boolean
   getSelection: () => Selection | null
+  get value(): string
 
   /**
    *  This can only be used when the input is controlled. Use `transformText` if

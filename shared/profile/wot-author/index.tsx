@@ -54,7 +54,7 @@ export type ReviewProps = {
 export type Question2Props = {
   error?: string
   onBack: () => void
-  onSubmit: ({statement: string}) => void
+  onSubmit: (s: {statement: string}) => void
   voucheeUsername: string
   waiting?: boolean
 }
@@ -196,7 +196,7 @@ export const ReviewWrapper = (props: Container.RouteProps<'profileWotReview'>) =
   const error = Container.useSelector(state => state.profile.wotAuthorError)
   const [lastAction, setLastAction] = React.useState<ReviewAction | undefined>(undefined)
   const isWaiting = Container.useAnyWaiting(UsersConstants.wotReactWaitingKey)
-  let waiting = isWaiting ? lastAction : undefined
+  const waiting = isWaiting ? lastAction : undefined
   let fatalError = ''
   if (!sigID) {
     fatalError = 'Routing missing ID.'
@@ -417,13 +417,13 @@ export const Review = (props: ReviewProps) => {
         title: 'Review claim',
       }}
       mode="DefaultFullHeight"
-      banners={[
-        !!props.error && (
+      banners={
+        props.error ? (
           <Kb.Banner key="error" color="red">
             <Kb.BannerParagraph bannerColor="red" content={props.error} />
           </Kb.Banner>
-        ),
-      ]}
+        ) : null
+      }
       footer={{
         content: (
           <Kb.ButtonBar align="center" direction="column" fullWidth={true} style={styles.buttonBar}>
@@ -583,13 +583,13 @@ const WotModal = (props: WotModalProps) => {
         title: 'Web of Trust',
       }}
       mode="DefaultFullHeight"
-      banners={[
-        !!props.error && (
+      banners={
+        props.error ? (
           <Kb.Banner key="error" color="red">
             <Kb.BannerParagraph bannerColor="red" content={props.error} />
           </Kb.Banner>
-        ),
-      ]}
+        ) : null
+      }
       footer={{
         content: (
           <Kb.ButtonBar align="center" direction="row" fullWidth={true} style={styles.buttonBar}>

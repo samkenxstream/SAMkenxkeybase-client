@@ -320,7 +320,7 @@ type ChunkType = Array<
   | {type: 'loading'; text: string}
 >
 class User extends React.Component<Props, State> {
-  static navigationOptions = () => ({
+  static navigationOptions = {
     headerLeft: ({
       canGoBack,
       onPress,
@@ -330,13 +330,15 @@ class User extends React.Component<Props, State> {
       onPress: () => void
       tintColor: string
     }) => (
-      <Styles.StyleContext.Provider value={{canFixOverdraw: false}}>
+      <Styles.CanFixOverdrawContext.Provider value={false}>
         <HeaderLeftArrow canGoBack={canGoBack} onPress={onPress} tintColor={tintColor} />
-      </Styles.StyleContext.Provider>
+      </Styles.CanFixOverdrawContext.Provider>
     ),
+    headerShown: true,
+    headerStyle: {backgroundColor: 'transparent'},
     headerTitle: () => <ProfileSearch />,
     headerTransparent: true,
-  })
+  }
 
   constructor(props: Props) {
     super(props)
@@ -435,7 +437,7 @@ class User extends React.Component<Props, State> {
         ? this.props.followers
         : null
     const {itemsInARow, itemWidth} = widthToDimensions(this.state.width)
-    let chunks: ChunkType = this.state.width ? chunk(friends, itemsInARow) : []
+    const chunks: ChunkType = this.state.width ? chunk(friends, itemsInARow) : []
     if (chunks.length === 0) {
       if (this.props.following && this.props.followers) {
         chunks.push({
@@ -501,7 +503,13 @@ class User extends React.Component<Props, State> {
 const usernameSelectedTab = {}
 
 const avatarSize = 128
-const headerHeight = Styles.isAndroid ? 56 : Styles.isIOS ? Styles.statusBarHeight + 46 : 80
+const headerHeight = Styles.isAndroid
+  ? 56
+  : Styles.isTablet
+  ? 80
+  : Styles.isIOS
+  ? Styles.statusBarHeight + 46
+  : 80
 
 export const styles = Styles.styleSheetCreate(() => ({
   addIdentityButton: {

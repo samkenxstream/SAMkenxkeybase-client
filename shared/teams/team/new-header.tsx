@@ -5,12 +5,12 @@ import * as Container from '../../util/container'
 import * as Constants from '../../constants/teams'
 import * as Chat2Gen from '../../actions/chat2-gen'
 import TeamMenu from './menu-container'
-import {TeamID} from '../../constants/types/teams'
+import type {TeamID} from '../../constants/types/teams'
 import {pluralize} from '../../util/string'
 import capitalize from 'lodash/capitalize'
 import {Activity, useActivityLevels, useTeamLinkPopup} from '../common'
 import * as TeamsGen from '../../actions/teams-gen'
-import * as Types from '../../constants/types/teams'
+import type * as Types from '../../constants/types/teams'
 
 const AddPeopleButton = ({teamID}: {teamID: TeamID}) => {
   const dispatch = Container.useDispatch()
@@ -72,9 +72,9 @@ const FeatureTeamCard = ({teamID}: FeatureTeamCardProps) => {
   )
 }
 
-type HeaderTitleProps = Kb.PropsWithOverlay<{
+type HeaderTitleProps = {
   teamID: TeamID
-}>
+}
 
 const roleDisplay = {
   admin: 'an admin of',
@@ -84,7 +84,7 @@ const roleDisplay = {
   writer: 'a writer in',
 }
 
-const _HeaderTitle = (props: HeaderTitleProps) => {
+const HeaderTitle = (props: HeaderTitleProps) => {
   const {teamID} = props
   const meta = Container.useSelector(s => Constants.getTeamMeta(s, teamID))
   const details = Container.useSelector(s => Constants.getTeamDetails(s, teamID))
@@ -95,6 +95,14 @@ const _HeaderTitle = (props: HeaderTitleProps) => {
   const newMemberCount = 0 // TODO plumbing
 
   const callbacks = useHeaderCallbacks(teamID)
+  const teamMenu = Kb.usePopup(attachTo => (
+    <TeamMenu
+      attachTo={attachTo}
+      onHidden={teamMenu.toggleShowingPopup}
+      teamID={props.teamID}
+      visible={teamMenu.showingPopup}
+    />
+  ))
 
   const avatar = (
     <Kb.Avatar
@@ -204,17 +212,12 @@ const _HeaderTitle = (props: HeaderTitleProps) => {
           <Kb.Button
             mode="Secondary"
             small={true}
-            ref={props.setAttachmentRef}
-            onClick={props.toggleShowingMenu}
+            ref={teamMenu.popupAnchor}
+            onClick={teamMenu.toggleShowingPopup}
           >
             <Kb.Icon type="iconfont-ellipsis" color={Styles.globalColors.blue} />
           </Kb.Button>
-          <TeamMenu
-            attachTo={props.getAttachmentRef}
-            onHidden={props.toggleShowingMenu}
-            teamID={props.teamID}
-            visible={props.showingMenu}
-          />
+          {teamMenu.popup}
         </Kb.Box2>
       </Kb.Box2>
       {popup}
@@ -280,7 +283,7 @@ const _HeaderTitle = (props: HeaderTitleProps) => {
     </Kb.Box2>
   )
 }
-export default Kb.OverlayParentHOC(_HeaderTitle)
+export default HeaderTitle
 
 const useHeaderCallbacks = (teamID: TeamID) => {
   const dispatch = Container.useDispatch()

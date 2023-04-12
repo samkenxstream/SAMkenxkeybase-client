@@ -3,81 +3,33 @@ import * as Constants from '../../constants/chat2'
 import * as Container from '../../util/container'
 import Normal from './normal/container'
 import NoConversation from './no-conversation'
-import Error from './error/container'
+import Error from './error'
 import YouAreReset from './you-are-reset'
 import Rekey from './rekey/container'
 import {headerNavigationOptions} from './header-area/container'
-import {useFocusEffect, useNavigation} from '@react-navigation/core'
-import {tabBarStyle} from '../../router-v2/common'
 import type {RouteProps} from '../../router-v2/route-params'
 
-type ConvoType = 'error' | 'noConvo' | 'rekey' | 'youAreReset' | 'normal' | 'rekey'
-
 type SwitchProps = RouteProps<'chatConversation'>
-const hideTabBarStyle = {display: 'none'}
-
-// due to timing issues if we go between convos we can 'lose track' of focus in / out
-// so instead we keep a count and only bring back the tab if we're entirely gone
-let focusRefCount = 0
-
-let showDeferId: any = 0
-const deferChangeTabOptions = (tabNav, tabBarStyle, defer) => {
-  if (showDeferId) {
-    clearTimeout(showDeferId)
-  }
-  if (tabNav) {
-    if (defer) {
-      showDeferId = setTimeout(() => {
-        tabNav.setOptions({tabBarStyle})
-      }, 1)
-    } else {
-      tabNav.setOptions({tabBarStyle})
-    }
-  }
-}
 
 const Conversation = (p: SwitchProps) => {
-  const navigation = useNavigation()
-  let tabNav: any = navigation.getParent()
-  if (tabNav?.getState()?.type !== 'tab') {
-    tabNav = undefined
-  }
-
-  useFocusEffect(
-    React.useCallback(() => {
-      if (!Container.isPhone) {
-        return
-      }
-      ++focusRefCount
-      deferChangeTabOptions(tabNav, hideTabBarStyle, false)
-      return () => {
-        --focusRefCount
-        if (focusRefCount === 0) {
-          deferChangeTabOptions(tabNav, tabBarStyle, true)
-        }
-      }
-    }, [tabNav])
-  )
-
   const conversationIDKey = p.route.params?.conversationIDKey ?? Constants.noConversationIDKey
-  const meta = Container.useSelector(state => Constants.getMeta(state, conversationIDKey))
-
-  let type: ConvoType
-  switch (conversationIDKey) {
-    case Constants.noConversationIDKey:
-      type = 'noConvo'
-      break
-    default:
-      if (meta.membershipType === 'youAreReset') {
-        type = 'youAreReset'
-      } else if (meta.rekeyers.size > 0) {
-        type = 'rekey'
-      } else if (meta.trustedState === 'error') {
-        type = 'error'
-      } else {
-        type = 'normal'
-      }
-  }
+  const type = Container.useSelector(state => {
+    const meta = Constants.getMeta(state, conversationIDKey)
+    switch (conversationIDKey) {
+      case Constants.noConversationIDKey:
+        return 'noConvo'
+      default:
+        if (meta.membershipType === 'youAreReset') {
+          return 'youAreReset'
+        } else if (meta.rekeyers.size > 0) {
+          return 'rekey'
+        } else if (meta.trustedState === 'error') {
+          return 'error'
+        } else {
+          return 'normal'
+        }
+    }
+  })
 
   switch (type) {
     case 'error':
@@ -109,7 +61,7 @@ const Conversation = (p: SwitchProps) => {
 // @ts-ignore
 Conversation.navigationOptions = ({route}) => ({
   ...headerNavigationOptions(route),
-  needsSafe: true,
+  presentation: undefined,
 })
 
 const ConversationMemoed = React.memo(Conversation)

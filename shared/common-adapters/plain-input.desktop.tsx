@@ -3,15 +3,15 @@ import * as Styles from '../styles'
 import {getStyle as getTextStyle} from './text.desktop'
 import pick from 'lodash/pick'
 import logger from '../logger'
-import {InternalProps, TextInfo, Selection} from './plain-input'
 import {checkTextInfo} from './input.shared'
+import type {InternalProps, TextInfo, Selection} from './plain-input'
 
 const maybeParseInt = (input: string | number, radix: number): number =>
   typeof input === 'string' ? parseInt(input, radix) : input
 // A plain text input component. Handles callbacks, text styling, and auto resizing but
 // adds no styling.
 class PlainInput extends React.PureComponent<InternalProps> {
-  _input: HTMLTextAreaElement | HTMLInputElement | null = null
+  _input = React.createRef<HTMLTextAreaElement | HTMLInputElement | null>()
   _isComposingIME: boolean = false
   private mounted: boolean = true
 
@@ -20,8 +20,8 @@ class PlainInput extends React.PureComponent<InternalProps> {
     textType: 'Body',
   }
 
-  _setInputRef = (ref: HTMLTextAreaElement | HTMLInputElement | null) => {
-    this._input = ref
+  get value() {
+    return this._input.current?.value ?? ''
   }
 
   // This is controlled if a value prop is passed
@@ -35,7 +35,7 @@ class PlainInput extends React.PureComponent<InternalProps> {
       }
     }
 
-    this.props.onChangeText && this.props.onChangeText(value)
+    this.props.onChangeText?.(value)
     this._autoResize()
   }
 
@@ -51,7 +51,7 @@ class PlainInput extends React.PureComponent<InternalProps> {
       return
     }
 
-    const n = this._input
+    const n = this._input.current
     if (!n) {
       return
     }
@@ -67,14 +67,20 @@ class PlainInput extends React.PureComponent<InternalProps> {
   }
 
   focus = () => {
-    this._input && this._input.focus()
+    this._input.current?.focus()
+  }
+
+  clear = () => {
+    if (this._input.current) {
+      this._input.current.value = ''
+    }
   }
 
   blur = () => {
-    this._input && this._input.blur()
+    this._input.current?.blur()
   }
 
-  isFocused = () => !!this._input && document.activeElement === this._input
+  isFocused = () => !!this._input.current && document.activeElement === this._input.current
 
   transformText = (fn: (textInfo: TextInfo) => TextInfo, reflectChange?: boolean) => {
     if (this._controlled()) {
@@ -83,7 +89,7 @@ class PlainInput extends React.PureComponent<InternalProps> {
       logger.error(errMsg)
       throw new Error(errMsg)
     }
-    const n = this._input
+    const n = this._input.current
     if (n) {
       const textInfo: TextInfo = {
         selection: {
@@ -98,8 +104,8 @@ class PlainInput extends React.PureComponent<InternalProps> {
       n.selectionStart = newTextInfo.selection.start
       n.selectionEnd = newTextInfo.selection.end
 
-      if (reflectChange && this._input) {
-        this._onChange({target: this._input})
+      if (reflectChange && this._input.current) {
+        this._onChange({target: this._input.current})
       }
 
       this._autoResize()
@@ -107,7 +113,7 @@ class PlainInput extends React.PureComponent<InternalProps> {
   }
 
   getSelection = () => {
-    const n = this._input
+    const n = this._input.current
     if (n) {
       return {end: n.selectionEnd, start: n.selectionStart}
     }
@@ -121,7 +127,7 @@ class PlainInput extends React.PureComponent<InternalProps> {
       logger.error(errMsg)
       throw new Error(errMsg)
     }
-    const n = this._input
+    const n = this._input.current
     if (n) {
       n.selectionStart = s.start
       n.selectionEnd = s.end
@@ -158,7 +164,7 @@ class PlainInput extends React.PureComponent<InternalProps> {
   }
 
   _onFocus = () => {
-    this.props.onFocus && this.props.onFocus()
+    this.props.onFocus?.()
     this.props.selectTextOnFocus &&
       // doesn't work within the same tick
       setTimeout(
@@ -172,11 +178,11 @@ class PlainInput extends React.PureComponent<InternalProps> {
   }
 
   _onBlur = () => {
-    this.props.onBlur && this.props.onBlur()
+    this.props.onBlur?.()
   }
 
   _getCommonProps = () => {
-    let commonProps: any = {
+    const commonProps = {
       ...pick(this.props, ['maxLength', 'value']), // Props we should only passthrough if supplied
       autoFocus: this.props.autoFocus,
       className: Styles.classNames(this.props.allowKeyboardEvents && 'mousetrap', this.props.className),
@@ -190,11 +196,8 @@ class PlainInput extends React.PureComponent<InternalProps> {
       onKeyUp: this._onKeyUp,
       placeholder: this.props.placeholder,
       placeholderColor: this.props.placeholderColor,
-      placeholderTextType: this.props.placeholderTextType,
-      ref: this._setInputRef,
-    }
-    if (this.props.disabled) {
-      commonProps.readOnly = 'readonly'
+      ref: this._input,
+      ...(this.props.disabled ? {readOnly: true} : {}),
     }
     return commonProps
   }
@@ -301,40 +304,31 @@ class PlainInput extends React.PureComponent<InternalProps> {
   }
 
   render() {
-    const inputProps = this._getInputProps()
-    return <>{this.props.multiline ? <StyledTextArea {...inputProps} /> : <StyledInput {...inputProps} />}</>
+    const {ref, placeholderColor, ...inputProps} = this._getInputProps()
+    const realCSS = this.props.multiline
+      ? `
+textarea::-webkit-inner-spin-button {-webkit-appearance: none; margin: 0;}
+textarea::-webkit-input-placeholder { color: ${placeholderColor || Styles.globalColors.black_35}}
+textarea::-webkit-outer-spin-button {-webkit-appearance: none; margin: 0;}
+`
+      : `
+input::-webkit-inner-spin-button {-webkit-appearance: none; margin: 0;}
+input::-webkit-input-placeholder { color: ${placeholderColor || Styles.globalColors.black_35}}
+input::-webkit-outer-spin-button {-webkit-appearance: none; margin: 0;}
+`
+
+    return (
+      <>
+        <style>{realCSS}</style>
+        {this.props.multiline ? (
+          <textarea {...inputProps} ref={ref as any} />
+        ) : (
+          <input {...inputProps} ref={ref as any} />
+        )}
+      </>
+    )
   }
 }
-
-const StyledTextArea = Styles.styled.textarea(
-  // @ts-ignore
-  (props: {placeholderColor: any; placeholderTextType: any}) => {
-    const placeholderStyle = props.placeholderTextType ? getTextStyle(props.placeholderTextType) : {}
-    return {
-      '&::-webkit-inner-spin-button': {WebkitAppearance: 'none', margin: 0},
-      '&::-webkit-input-placeholder': {
-        ...placeholderStyle,
-        color: props.placeholderColor || Styles.globalColors.black_35,
-      },
-      '&::-webkit-outer-spin-button': {WebkitAppearance: 'none', margin: 0},
-    }
-  }
-)
-
-const StyledInput = Styles.styled.input(
-  // @ts-ignore
-  (props: {placeholderColor: any; placeholderTextType: any}) => {
-    const placeholderStyle = props.placeholderTextType ? getTextStyle(props.placeholderTextType) : {}
-    return {
-      '&::-webkit-inner-spin-button': {WebkitAppearance: 'none', margin: 0},
-      '&::-webkit-input-placeholder': {
-        ...placeholderStyle,
-        color: props.placeholderColor || Styles.globalColors.black_35,
-      },
-      '&::-webkit-outer-spin-button': {WebkitAppearance: 'none', margin: 0},
-    }
-  }
-)
 
 const styles = Styles.styleSheetCreate(() => ({
   flexable: {

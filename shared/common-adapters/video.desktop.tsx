@@ -1,6 +1,6 @@
 import * as React from 'react'
 import Measure from 'react-measure'
-import {Props, State} from './video'
+import type {Props, State} from './video'
 import * as Styles from '../styles'
 import {getVideoSize, CheckURL} from './video.shared'
 
@@ -21,9 +21,15 @@ export default class extends React.PureComponent<Props, State> {
   _videoRef: {
     current: HTMLVideoElement | null
   } = React.createRef()
-  _onVideoClick = () =>
+  _onVideoClick = () => {
     this._videoRef.current &&
-    (this._videoRef.current.paused ? this._videoRef.current.play() : this._videoRef.current.pause())
+      (this._videoRef.current.paused
+        ? this._videoRef.current
+            .play()
+            .then(() => {})
+            .catch(() => {})
+        : this._videoRef.current.pause())
+  }
 
   _onVideoLoadedmetadata = ({target}) => {
     this._mounted &&
@@ -45,7 +51,7 @@ export default class extends React.PureComponent<Props, State> {
   render() {
     const {onUrlError} = this.props
     return (
-      <CheckURL url={this.props.url}>
+      <CheckURL url={this.props.url} allowFile={this.props.allowFile}>
         <Measure bounds={true} onResize={this._onContainerResize}>
           {({measureRef}) => (
             <div ref={measureRef} style={Styles.collapseStyles([styles.container, this.props.style])}>

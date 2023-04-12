@@ -1,7 +1,6 @@
 import * as React from 'react'
 import * as Kb from '../../../../../common-adapters'
-import {Position} from '../../../../../common-adapters/relative-popup-hoc.types'
-import {StylesCrossPlatform} from '../../../../../styles/css'
+import type {Position, StylesCrossPlatform} from '../../../../../styles'
 
 type Props = {
   attachTo?: () => React.Component<any> | null
@@ -30,8 +29,11 @@ const JourneycardPopupMenu = (props: Props) => {
       positionFallbacks={[]}
       containerStyle={props.style}
       visible={props.visible}
+      safeProviderStyle={safeProviderStyle}
     />
   )
 }
+
+const safeProviderStyle = {flex: 1} as const
 
 export default JourneycardPopupMenu

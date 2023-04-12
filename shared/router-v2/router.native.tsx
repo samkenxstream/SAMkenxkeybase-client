@@ -12,15 +12,11 @@ import * as Common from './common.native'
 import * as ConfigConstants from '../constants/config'
 import {useMemo} from '../util/memoize'
 import {StatusBar} from 'react-native'
-import {HeaderLeftCancel} from '../common-adapters/header-hoc'
-import {NavigationContainer} from '@react-navigation/native'
+import {HeaderLeftCancel2} from '../common-adapters/header-hoc'
+import {NavigationContainer, getFocusedRouteNameFromRoute} from '@react-navigation/native'
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs'
 import {modalRoutes, routes, loggedOutRoutes, tabRoots} from './routes'
-import {enableFreeze} from 'react-native-screens'
-import createNoDupeStackNavigator from './stack'
-import {TransitionPresets} from '@react-navigation/stack'
-
-enableFreeze()
+import {createNativeStackNavigator} from '@react-navigation/native-stack'
 
 if (module.hot) {
   module.hot.accept('', () => {
@@ -47,25 +43,11 @@ const makeNavScreens = (rs, Screen, isModal) => {
         name={name}
         getComponent={rs[name].getScreen}
         options={({route, navigation}) => {
-          const no = rs[name].getOptions ?? rs[name].getScreen().navigationOptions
+          const no = Shim.getOptions(rs[name])
           const opt = typeof no === 'function' ? no({navigation, route}) : no
-          const skipAnim =
-            route.params?.animationEnabled === undefined
-              ? {}
-              : {
-                  // immediate pop in, default back animation
-                  transitionSpec: {
-                    close: TransitionPresets.DefaultTransition,
-                    open: {
-                      animation: 'timing',
-                      config: {duration: 0},
-                    },
-                  },
-                }
           return {
             ...opt,
             ...(isModal ? {animationEnabled: true} : {}),
-            ...skipAnim,
           }
         }}
       />
@@ -73,17 +55,20 @@ const makeNavScreens = (rs, Screen, isModal) => {
   })
 }
 
-const TabBarIcon = React.memo((props: {isFocused: boolean; routeName: Tabs.Tab}) => {
+const TabBarIcon = React.memo(function TabBarIcon(props: {isFocused: boolean; routeName: Tabs.Tab}) {
   const {isFocused, routeName} = props
-  const onSettings = routeName === Tabs.settingsTab
-  const navBadges = Container.useSelector(state => state.notifications.navBadges)
-  const pushHasPermissions = Container.useSelector(state => state.push.hasPermissions)
-  const tabsToCount: ReadonlyArray<Tabs.Tab> = onSettings ? settingsTabChildren : [routeName]
-  const badgeNumber = tabsToCount.reduce(
-    (res, tab) => res + (navBadges.get(tab) || 0),
-    // notifications gets badged on native if there's no push, special case
-    onSettings && !pushHasPermissions ? 1 : 0
-  )
+  const badgeNumber = Container.useSelector(state => {
+    const {navBadges} = state.notifications
+    const {hasPermissions} = state.push
+    const onSettings = routeName === Tabs.settingsTab
+    const tabsToCount: ReadonlyArray<Tabs.Tab> = onSettings ? settingsTabChildren : [routeName]
+    const badgeNumber = tabsToCount.reduce(
+      (res, tab) => res + (navBadges.get(tab) || 0),
+      // notifications gets badged on native if there's no push, special case
+      onSettings && !hasPermissions ? 1 : 0
+    )
+    return badgeNumber
+  })
 
   return tabToData[routeName] ? (
     <Kb.NativeView style={styles.container}>
@@ -142,41 +127,28 @@ const styles = Styles.styleSheetCreate(
 )
 
 const Tab = createBottomTabNavigator()
-
-const fastTransitionSpec = {
-  animation: 'spring',
-  config: {
-    damping: 500,
-    mass: 0.3,
-    overshootClamping: true,
-    restDisplacementThreshold: 10,
-    restSpeedThreshold: 10,
-    stiffness: 1000,
-  },
-}
+const tabRoutes = routes
 
 // we must ensure we don't keep remaking these components
 const tabScreensCache = new Map()
 const makeTabStack = (tab: string) => {
-  const S = createNoDupeStackNavigator()
+  const S = createNativeStackNavigator()
 
   let tabScreens = tabScreensCache.get(tab)
   if (!tabScreens) {
-    tabScreens = makeNavScreens(Shim.shim(routes, false, false), S.Screen, false)
+    tabScreens = makeNavScreens(Shim.shim(tabRoutes, false, false), S.Screen, false)
     tabScreensCache.set(tab, tabScreens)
   }
 
   const Comp = React.memo(
-    () => {
+    function TabStack() {
       return (
         <S.Navigator
           initialRouteName={tabRoots[tab]}
           screenOptions={{
             ...Common.defaultNavigationOptions,
-            transitionSpec: {
-              close: fastTransitionSpec,
-              open: fastTransitionSpec,
-            },
+            animation: 'simple_push',
+            animationDuration: 250,
           }}
         >
           {tabScreens}
@@ -188,82 +160,94 @@ const makeTabStack = (tab: string) => {
   return Comp
 }
 
-const AppTabsInner = () => {
-  const dispatch = Container.useDispatch()
-
-  // so we have a stack per tab
-  const tabStacks = useMemo(
-    () =>
-      tabs.map(tab => (
-        <Tab.Screen
-          key={tab}
-          name={tab}
-          component={makeTabStack(tab)}
-          listeners={() => ({
-            tabLongPress: () => {
-              dispatch(RouteTreeGen.createTabLongPress({tab}))
-            },
-          })}
-        />
-      )),
-    [dispatch]
-  )
-
-  return (
-    <Tab.Navigator
-      backBehavior="none"
-      screenOptions={({route}) => {
-        return {
-          ...Common.defaultNavigationOptions,
-          headerShown: false,
-          tabBarActiveBackgroundColor: Styles.globalColors.transparent,
-          tabBarHideOnKeyboard: true,
-          tabBarIcon: ({focused}) => <TabBarIcon isFocused={focused} routeName={route.name as Tabs.Tab} />,
-          tabBarInactiveBackgroundColor: Styles.globalColors.transparent,
-          tabBarLabel: ({focused}) => (
-            <Kb.Text
-              style={Styles.collapseStyles([
-                styles.label,
-                Styles.isDarkMode()
-                  ? focused
-                    ? styles.labelDarkModeFocused
-                    : styles.labelDarkMode
-                  : focused
-                  ? styles.labelLightModeFocused
-                  : styles.labelLightMode,
-              ])}
-              type="BodyBig"
-            >
-              {tabToData[route.name].label}
-            </Kb.Text>
-          ),
-          tabBarShowLabel: Styles.isTablet,
-          tabBarStyle: Common.tabBarStyle,
-        }
-      }}
-    >
-      {tabStacks}
-    </Tab.Navigator>
-  )
+const makeLongPressHandler = (dispatch: Container.TypedDispatch, tab: Tabs.AppTab) => {
+  return () => {
+    dispatch(RouteTreeGen.createTabLongPress({tab}))
+  }
 }
-
 const AppTabs = React.memo(
-  AppTabsInner,
+  function AppTabs() {
+    const dispatch = Container.useDispatch()
+
+    // so we have a stack per tab
+    const tabStacks = useMemo(
+      () =>
+        tabs.map(tab => (
+          <Tab.Screen
+            key={tab}
+            name={tab}
+            component={makeTabStack(tab)}
+            options={({route}) => {
+              const routeName = getFocusedRouteNameFromRoute(route)
+              return {
+                tabBarStyle: routeName === 'chatConversation' ? Common.tabBarStyleHidden : Common.tabBarStyle,
+              }
+            }}
+            listeners={{tabLongPress: makeLongPressHandler(dispatch, tab)}}
+          />
+        )),
+      [dispatch]
+    )
+
+    const makeTabBarIcon =
+      (routeName: string) =>
+      ({focused}) =>
+        <TabBarIcon isFocused={focused} routeName={routeName as Tabs.Tab} />
+    const makeTabBarLabel =
+      (routeName: string) =>
+      ({focused}) =>
+        (
+          <Kb.Text
+            style={Styles.collapseStyles([
+              styles.label,
+              Styles.isDarkMode()
+                ? focused
+                  ? styles.labelDarkModeFocused
+                  : styles.labelDarkMode
+                : focused
+                ? styles.labelLightModeFocused
+                : styles.labelLightMode,
+            ])}
+            type="BodyBig"
+          >
+            {tabToData[routeName].label}
+          </Kb.Text>
+        )
+
+    return (
+      <Tab.Navigator
+        backBehavior="none"
+        screenOptions={({route}) => {
+          return {
+            ...Common.defaultNavigationOptions,
+            headerShown: false,
+            tabBarActiveBackgroundColor: Styles.globalColors.transparent,
+            tabBarHideOnKeyboard: true,
+            tabBarIcon: makeTabBarIcon(route.name),
+            tabBarInactiveBackgroundColor: Styles.globalColors.transparent,
+            tabBarLabel: makeTabBarLabel(route.name),
+            tabBarShowLabel: Styles.isTablet,
+            tabBarStyle: Common.tabBarStyle,
+          }
+        }}
+      >
+        {tabStacks}
+      </Tab.Navigator>
+    )
+  },
   () => true // ignore all props
 )
 
-const LoggedOutStack = createNoDupeStackNavigator()
+const LoggedOutStack = createNativeStackNavigator()
+
 const LoggedOutScreens = makeNavScreens(Shim.shim(loggedOutRoutes, false, true), LoggedOutStack.Screen, false)
-const LoggedOut = React.memo(() => (
-  <LoggedOutStack.Navigator
-    initialRouteName="login"
-    screenOptions={{
-      headerShown: false,
-    }}
-  >
-    {LoggedOutScreens}
-  </LoggedOutStack.Navigator>
-))
+const LoggedOut = React.memo(function LoggedOut() {
+  return (
+    <LoggedOutStack.Navigator initialRouteName="login" screenOptions={{headerShown: false}}>
+      {LoggedOutScreens}
+    </LoggedOutStack.Navigator>
+  )
+})
 
 const useInitialStateChangeAfterLinking = (
   goodLinking: any,
@@ -295,11 +279,12 @@ const useInitialStateChangeAfterLinking = (
   const lastLoggedInTab = React.useRef<string | undefined>(undefined)
   const lastLoggedIn = Container.usePrevious(loggedIn)
   if (!loggedIn && lastLoggedIn) {
-    lastLoggedInTab.current = Constants.getCurrentTab()
+    lastLoggedInTab.current = Constants.getTab(null)
   }
 
   React.useEffect(() => {
     if (loggedIn && !lastLoggedIn && lastLoggedInTab.current) {
+      // @ts-ignore
       Constants.navigationRef_.navigate(lastLoggedInTab.current as any)
     }
   }, [loggedIn, lastLoggedIn])
@@ -312,7 +297,7 @@ enum GoodLinkingState {
   GoodLinkingHandled,
 }
 
-const RootStack = createNoDupeStackNavigator()
+const RootStack = createNativeStackNavigator()
 const ModalScreens = makeNavScreens(Shim.shim(modalRoutes, true, false), RootStack.Screen, true)
 
 const useBarStyle = () => {
@@ -325,7 +310,7 @@ const useBarStyle = () => {
   return isDarkMode ? 'light-content' : 'dark-content'
 }
 
-const RNApp = React.memo(() => {
+const RNApp = React.memo(function RNApp() {
   const {loggedInLoaded, loggedIn, appState, onStateChange, navKey, initialState} = Shared.useShared()
   const goodLinking: any = RouterLinking.useReduxToLinking(appState.current)
   // we only send certain params to the container depending on the state so we can remount w/ the right data
@@ -353,7 +338,7 @@ const RNApp = React.memo(() => {
   const barStyle = useBarStyle()
 
   return (
-    <Kb.KeyboardAvoidingView style={styles.keyboard} behavior={Styles.isIOS ? 'padding' : undefined}>
+    <Kb.Box2 direction="vertical" pointerEvents="box-none" fullWidth={true} fullHeight={true}>
       <StatusBar barStyle={barStyle} />
       <NavigationContainer
         fallback={<Kb.NativeView style={{backgroundColor: Styles.globalColors.white, flex: 1}} />}
@@ -368,15 +353,7 @@ const RNApp = React.memo(() => {
         <RootStack.Navigator
           key="root"
           screenOptions={{
-            animationEnabled: false,
-            // in RNN the background theme is used several times in the stack which causes overdraw if we set it in the theme
-            // if we don't set it in the theme when modals pop the underlying card's background will visibly thrash while a modal slides up
-            // this lets us override the card's background so we can not overdraw and not thrash
-            cardStyle: Styles.isAndroid ? {backgroundColor: Styles.globalColors.white} : undefined,
-            headerLeft: () => <HeaderLeftCancel />,
             headerShown: false, // eventually do this after we pull apart modal2 etc
-            presentation: 'modal',
-            title: '',
           }}
         >
           {!loggedInLoaded && (
@@ -385,13 +362,22 @@ const RNApp = React.memo(() => {
           {loggedInLoaded && loggedIn && (
             <>
               <RootStack.Screen name="loggedIn" component={AppTabs} />
-              {ModalScreens}
+              <RootStack.Group
+                screenOptions={{
+                  headerLeft: () => <HeaderLeftCancel2 />,
+                  // hard to fight overdraw on android with this on so just treat modals as screens
+                  presentation: Styles.isAndroid ? undefined : 'modal',
+                  title: '',
+                }}
+              >
+                {ModalScreens}
+              </RootStack.Group>
             </>
           )}
           {loggedInLoaded && !loggedIn && <RootStack.Screen name="loggedOut" component={LoggedOut} />}
         </RootStack.Navigator>
       </NavigationContainer>
-    </Kb.KeyboardAvoidingView>
+    </Kb.Box2>
   )
 })
 

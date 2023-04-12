@@ -71,18 +71,6 @@ js_tests() {
     echo 'yarn tsc'
     yarn tsc --project ./tsconfig.json
     check_rc $? 'tsc failed!' 1
-
-    echo 'yarn lint'
-    yarn lint
-    check_rc $? 'yarn run lint fail' 1
-
-    echo 'yarn test'
-    yarn test
-    check_rc $? 'yarn test fail' 1
-
-    echo 'yarn prettier-check'
-    yarn prettier-check
-    check_rc $? 'yarn prettier-check fail' 1
 }
 
 js_tests

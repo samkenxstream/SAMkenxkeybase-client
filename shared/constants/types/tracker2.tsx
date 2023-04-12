@@ -1,5 +1,5 @@
-import {WebOfTrustVerificationType} from './more'
-import * as RPCTypes from './rpc-gen'
+import type {WebOfTrustVerificationType} from './more'
+import type * as RPCTypes from './rpc-gen'
 
 export type TeamShowcase = {
   description: string
@@ -68,7 +68,6 @@ export type Details = {
   location?: string
   numAssertionsExpected?: number
   reason: string
-  showTracker: boolean
   state: DetailsState
   stellarHidden?: boolean
   teamShowcase?: Array<TeamShowcase>
@@ -106,6 +105,7 @@ export type WebOfTrustEntry = {
 }
 
 export type State = {
+  readonly showTrackerSet: Set<string>
   readonly usernameToDetails: Map<string, Details>
   readonly usernameToNonUserDetails: Map<string, NonUserDetails>
   readonly proofSuggestions: ReadonlyArray<Assertion>

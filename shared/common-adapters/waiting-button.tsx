@@ -1,6 +1,6 @@
 import * as React from 'react'
-import {default as Button, Props as ButtonProps} from './button'
-import ClickableBox from './clickable-box'
+import {default as Button, type Props as ButtonProps} from './button'
+import type ClickableBox from './clickable-box'
 import * as Container from '../util/container'
 import * as WaitingConstants from '../constants/waiting'
 
@@ -25,7 +25,7 @@ export type Props = {
  *  waiting store (store.waiting), which will be set by a saga somewhere.
  */
 
-const WaitingButton = React.forwardRef<ClickableBox, Props>((props, ref) => {
+const WaitingButton = React.forwardRef<ClickableBox, Props>(function WaitingButton(props, ref) {
   const {onlyDisable, waitingKey, ...buttonProps} = props
   const storeWaiting = Container.useSelector(state =>
     typeof waitingKey === 'string'

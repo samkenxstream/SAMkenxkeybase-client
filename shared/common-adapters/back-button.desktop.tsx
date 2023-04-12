@@ -4,14 +4,14 @@ import * as React from 'react'
 import * as Styles from '../styles'
 import Icon from './icon'
 import Text from './text'
-import {Props} from './back-button'
+import type {Props} from './back-button'
 
 const Kb = {
   Icon,
   Text,
 }
 
-const BackButton = React.memo((props: Props) => {
+const BackButton = React.memo(function BackButton(props: Props) {
   const dispatch = Container.useDispatch()
   const onBack = props.disabled ? () => {} : props.onClick ?? (() => dispatch(createNavigateUp()))
   const _onClick = (event: React.BaseSyntheticEvent) => {

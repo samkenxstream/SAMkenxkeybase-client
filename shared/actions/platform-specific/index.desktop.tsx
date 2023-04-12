@@ -1,30 +1,40 @@
 import * as ConfigConstants from '../../constants/config'
 import * as ConfigGen from '../config-gen'
+import * as Container from '../../util/container'
 import * as EngineGen from '../engine-gen-gen'
 import * as RPCTypes from '../../constants/types/rpc-gen'
+import InputMonitor from './input-monitor.desktop'
+import KB2 from '../../util/electron.desktop'
 import logger from '../../logger'
-import {NotifyPopup} from '../../native/notifications'
+import type {RPCError} from '../../util/errors'
+import {_getNavigator} from '../../constants/router2'
 import {getEngine} from '../../engine'
 import {isLinux, isWindows, defaultUseNativeFrame} from '../../constants/platform.desktop'
-import {kbfsNotification} from '../../util/kbfs-notifications'
-import {writeLogLinesToFile} from '../../util/forward-logs'
-import InputMonitor from './input-monitor.desktop'
+import {kbfsNotification} from './kbfs-notifications'
 import {skipAppFocusActions} from '../../local-debug.desktop'
-import * as Container from '../../util/container'
-import {_getNavigator} from '../../constants/router2'
-import type {RPCError} from '../../util/errors'
-import KB2 from '../../util/electron.desktop'
+import NotifyPopup from '../../util/notify-popup'
 
 const {showMainWindow, activeChanged, requestWindowsStartService, dumpNodeLogger} = KB2.functions
 const {quitApp, exitApp, setOpenAtLogin, ctlQuit, copyToClipboard} = KB2.functions
+
+const onLog = (_: unknown, action: EngineGen.Keybase1LogUiLogPayload) => {
+  const {params} = action.payload
+  const {level, text} = params
+  logger.info('keybase.1.logUi.log:', params.text.data)
+  if (level >= RPCTypes.LogLevel.error) {
+    NotifyPopup(text.data, {})
+  }
+}
+
+export const requestPermissionsToWrite = async () => {
+  return Promise.reject(new Error('Requets permissions - unsupported on this platform'))
+}
 
 export function showShareActionSheet() {
   throw new Error('Show Share Action - unsupported on this platform')
 }
 export async function saveAttachmentToCameraRoll() {
-  return new Promise((_, rej) =>
-    rej(new Error('Save Attachment to camera roll - unsupported on this platform'))
-  )
+  return Promise.reject(new Error('Save Attachment to camera roll - unsupported on this platform'))
 }
 
 export function displayNewMessageNotification() {
@@ -61,9 +71,8 @@ const initializeInputMonitor = (listenerApi: Container.ListenerApi) => {
 }
 
 export const dumpLogs = async (_?: unknown, action?: ConfigGen.DumpLogsPayload) => {
-  const fromRender = await logger.dump()
-  const fromMain = await (dumpNodeLogger?.() ?? Promise.resolve([]))
-  await writeLogLinesToFile([...fromRender, ...fromMain])
+  await logger.dump()
+  await (dumpNodeLogger?.() ?? Promise.resolve([]))
   // quit as soon as possible
   if (action && action.payload.reason === 'quitting through menu') {
     ctlQuit?.()
@@ -319,7 +328,6 @@ const onSetOpenAtLogin = async (state: Container.TypedState) => {
 }
 
 export const requestLocationPermission = async () => Promise.resolve()
-export const requestAudioPermission = async () => Promise.resolve()
 export const watchPositionForMap = async () => Promise.resolve(() => {})
 
 const checkNav = async (
@@ -350,6 +358,30 @@ const checkNav = async (
   }
 }
 
+const maybePauseVideos = (_: unknown, action: ConfigGen.ChangedFocusPayload) => {
+  const {appFocused} = action.payload
+  const videos = document.querySelectorAll('video')
+  const allVideos = Array.from(videos)
+
+  allVideos.forEach(v => {
+    if (appFocused) {
+      if (v.hasAttribute('data-focus-paused')) {
+        if (v.paused) {
+          v.play()
+            .then(() => {})
+            .catch(() => {})
+        }
+      }
+    } else {
+      // only pause looping videos
+      if (!v.paused && v.hasAttribute('loop') && v.hasAttribute('autoplay')) {
+        v.setAttribute('data-focus-paused', 'true')
+        v.pause()
+      }
+    }
+  })
+}
+
 export const initPlatformListener = () => {
   Container.listenAction(ConfigGen.setOpenAtLogin, onSetOpenAtLogin)
   Container.listenAction(ConfigGen.setNotifySound, setNotifySound)
@@ -370,6 +402,8 @@ export const initPlatformListener = () => {
   Container.listenAction(ConfigGen.setUseNativeFrame, saveUseNativeFrame)
   Container.listenAction(ConfigGen.loggedIn, initOsNetworkStatus)
   Container.listenAction(ConfigGen.updateWindowState, saveWindowState)
+  Container.listenAction(ConfigGen.changedFocus, maybePauseVideos)
+  Container.listenAction(EngineGen.keybase1LogUiLog, onLog)
 
   if (isWindows) {
     Container.listenAction(ConfigGen.daemonHandshake, checkRPCOwnership)

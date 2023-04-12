@@ -1,5 +1,6 @@
 import * as Shared from './icon.shared'
 import * as Styles from '../styles'
+import {colors, darkColors} from '../styles/colors'
 import * as React from 'react'
 import logger from '../logger'
 import {iconMeta} from './icon.constants-gen'
@@ -7,9 +8,12 @@ import invert from 'lodash/invert'
 import type {Props, IconType} from './icon'
 import {getAssetPath} from '../constants/platform.desktop'
 
+const invertedLight = invert(colors)
+const invertedDark = invert(darkColors)
+
 const Icon = React.memo<Props>(
   // @ts-ignore
-  React.forwardRef<HTMLDivElement | HTMLImageElement, Props>((props, ref) => {
+  React.forwardRef<HTMLDivElement | HTMLImageElement, Props>(function Icon(props, ref) {
     const {type, inheritColor, opacity, fontSize, noContainer, onMouseEnter, onMouseLeave, style} = props
     const {className, hint, colorOverride, padding, boxStyle} = props
     const iconType = Shared.typeToIconMapper(type)
@@ -96,8 +100,7 @@ const Icon = React.memo<Props>(
           hoverColor: 'inherit',
         }
       } else {
-        // invert the colors here so it reflects the colors in current theme
-        const invertedColors = invert(Styles.globalColors)
+        const invertedColors = Styles.isDarkMode() ? invertedDark : invertedLight
         const hoverColorName = onClick ? invertedColors[hoverColor] : null
         hoverStyleName = hoverColorName ? `hover_color_${hoverColorName}` : ''
         const colorName = invertedColors[color]
@@ -126,6 +129,7 @@ const Icon = React.memo<Props>(
           ])}
         >
           <span
+            title={hint}
             style={Styles.collapseStyles([
               mergedStyle,
               padding && Shared.paddingStyles[padding],

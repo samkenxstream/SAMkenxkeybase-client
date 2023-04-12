@@ -1,4 +1,4 @@
-import React from 'react'
+import * as React from 'react'
 import * as Kb from '../../common-adapters'
 import * as Styles from '../../styles'
 import * as TeamsGen from '../../actions/teams-gen'
@@ -40,13 +40,11 @@ const EditTeamDescription = (props: Props) => {
     <Kb.Modal
       mode="Default"
       banners={
-        error
-          ? [
-              <Kb.Banner color="red" key="err">
-                {error}
-              </Kb.Banner>,
-            ]
-          : undefined
+        error ? (
+          <Kb.Banner color="red" key="err">
+            {error}
+          </Kb.Banner>
+        ) : null
       }
       onClose={onClose}
       footer={{

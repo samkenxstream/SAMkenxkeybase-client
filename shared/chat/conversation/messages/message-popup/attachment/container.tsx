@@ -1,31 +1,36 @@
-import type * as React from 'react'
 import * as Chat2Gen from '../../../../../actions/chat2-gen'
 import * as ConfigGen from '../../../../../actions/config-gen'
+import * as Constants from '../../../../../constants/chat2'
+import * as Container from '../../../../../util/container'
 import * as DeeplinksConstants from '../../../../../constants/deeplinks'
 import * as FsGen from '../../../../../actions/fs-gen'
-import * as Constants from '../../../../../constants/chat2'
-import type * as Types from '../../../../../constants/types/chat2'
-import type * as TeamTypes from '../../../../../constants/types/teams'
 import * as RouteTreeGen from '../../../../../actions/route-tree-gen'
-import {getCanPerformByID} from '../../../../../constants/teams'
-import * as Container from '../../../../../util/container'
-import {isMobile, isIOS} from '../../../../../constants/platform'
-import type {Position} from '../../../../../common-adapters/relative-popup-hoc.types'
-import type {StylesCrossPlatform} from '../../../../../styles/css'
 import Attachment from '.'
+import type * as React from 'react'
+import type * as TeamTypes from '../../../../../constants/types/teams'
+import type * as Types from '../../../../../constants/types/chat2'
+import type {Position, StylesCrossPlatform} from '../../../../../styles'
+import {getCanPerformByID} from '../../../../../constants/teams'
+import {isMobile, isIOS} from '../../../../../constants/platform'
+import {makeMessageAttachment} from '../../../../../constants/chat2/message'
 
 type OwnProps = {
   attachTo?: () => React.Component<any> | null
-  message: Types.MessageAttachment
+  ordinal: Types.Ordinal
+  conversationIDKey: Types.ConversationIDKey
   onHidden: () => void
   position: Position
   style?: StylesCrossPlatform
   visible: boolean
 }
 
+const emptyMessage = makeMessageAttachment({})
+
 export default Container.connect(
   (state, ownProps: OwnProps) => {
-    const message = ownProps.message
+    const {conversationIDKey, ordinal} = ownProps
+    const m = Constants.getMessage(state, conversationIDKey, ordinal)
+    const message = m?.type === 'attachment' ? m : emptyMessage
     const meta = Constants.getMeta(state, message.conversationIDKey)
     const isTeam = !!meta.teamname
     const participantInfo = Constants.getParticipantInfo(state, message.conversationIDKey)
@@ -45,6 +50,7 @@ export default Container.connect(
       _teamID: meta.teamID,
       _teamMembers,
       _you: state.config.username,
+      message,
       pending: !!message.transferState,
     }
   },
@@ -84,7 +90,8 @@ export default Container.connect(
     _onDownload: (message: Types.MessageAttachment) => {
       dispatch(
         Chat2Gen.createAttachmentDownload({
-          message,
+          conversationIDKey: message.conversationIDKey,
+          ordinal: message.id,
         })
       )
     },
@@ -121,6 +128,14 @@ export default Container.connect(
           path: [{props: {members: [username], teamID}, selected: 'teamReallyRemoveMember'}],
         })
       ),
+    _onMarkAsUnread: (message: Types.Message) => {
+      dispatch(
+        Chat2Gen.createMarkAsUnread({
+          conversationIDKey: message.conversationIDKey,
+          readMsgID: message.id,
+        })
+      )
+    },
     _onPinMessage: (message: Types.Message) => {
       dispatch(
         Chat2Gen.createPinMessage({
@@ -166,10 +181,10 @@ export default Container.connect(
     },
   }),
   (stateProps, dispatchProps, ownProps: OwnProps) => {
-    const message = ownProps.message
+    const {message} = stateProps
     const yourMessage = message.author === stateProps._you
     const isDeleteable = yourMessage || stateProps._canAdminDelete
-    const isEditable = !!(ownProps.message.isEditable && yourMessage)
+    const isEditable = !!(message.isEditable && yourMessage)
     const authorInTeam = stateProps._teamMembers?.has(message.author) ?? true
     return {
       attachTo: ownProps.attachTo,
@@ -190,6 +205,7 @@ export default Container.connect(
       onHidden: () => ownProps.onHidden(),
       onInstallBot: stateProps._authorIsBot ? () => dispatchProps._onInstallBot(message) : undefined,
       onKick: () => dispatchProps._onKick(stateProps._teamID, message.author),
+      onMarkAsUnread: () => dispatchProps._onMarkAsUnread(message),
       onPinMessage: stateProps._canPinMessage ? () => dispatchProps._onPinMessage(message) : undefined,
       onReact: (emoji: string) => dispatchProps._onReact(message, emoji),
       onReply: () => dispatchProps._onReply(message),

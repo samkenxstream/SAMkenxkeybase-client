@@ -17,11 +17,11 @@ export const SignInput = () => {
     }
   }, [dispatch])
   return (
-    <>
+    <Kb.KeyboardAvoidingView2>
       <OperationBanner operation={operation} />
       <Input operation={operation} />
       <InputActionsBar operation={operation} />
-    </>
+    </Kb.KeyboardAvoidingView2>
   )
 }
 export const SignOutput = () => (
@@ -33,15 +33,5 @@ export const SignOutput = () => (
     <OutputActionsBar operation={operation} />
   </>
 )
-
-SignInput.navigationOptions = {
-  headerShown: true,
-  title: 'Sign',
-}
-SignOutput.navigationOptions = {
-  headerLeft: p => <Kb.HeaderLeftCancel {...p} />,
-  headerShown: true,
-  title: 'Sign',
-}
 
 export default SignInput

@@ -7,7 +7,7 @@ import Icon from '../icon'
 import SafeAreaView, {SafeAreaViewTop} from '../safe-area-view'
 import * as Styles from '../../styles'
 import type {Action, Props, LeftActionProps} from '.'
-import {hoistNonReactStatic} from '../../util/container'
+import {useNavigation} from '@react-navigation/core'
 
 const MAX_RIGHT_ACTIONS = 3
 
@@ -238,25 +238,6 @@ export const HeaderHocWrapper = (props: Props & {children: React.ReactNode; skip
   )
 }
 
-/** TODO deprecate **/
-function HeaderHoc<P extends {}>(WrappedComponent: React.ComponentType<P>) {
-  const HeaderHocWrapper = (props: P & Props) => (
-    <Box style={styles.container}>
-      {!!props.customSafeAreaTopStyle && <SafeAreaViewTop style={props.customSafeAreaTopStyle} />}
-      <HeaderHocHeader {...props} />
-      <Box style={styles.grow}>
-        <Box style={styles.innerWrapper}>
-          <WrappedComponent {...(props as P)} />
-        </Box>
-      </Box>
-      {!!props.customSafeAreaBottomStyle && <SafeAreaView style={props.customSafeAreaBottomStyle} />}
-    </Box>
-  )
-
-  hoistNonReactStatic(HeaderHocWrapper, WrappedComponent)
-  return HeaderHocWrapper
-}
-
 // If layout is changed here, please make sure the Files header is updated as
 // well to match this. fs/nav-header/mobile-header.js
 
@@ -331,8 +312,7 @@ const styles = Styles.styleSheetCreate(() => ({
       flexShrink: 2,
       justifyContent: 'center',
     },
-    isAndroid: {alignItems: 'flex-start'},
-    isIOS: {
+    isMobile: {
       paddingLeft: Styles.globalMargins.tiny,
       paddingRight: Styles.globalMargins.tiny,
     },
@@ -347,18 +327,20 @@ const styles = Styles.styleSheetCreate(() => ({
 }))
 
 const noop = () => {}
-const HeaderLeftBlank_ = () => (
-  <LeftAction badgeNumber={0} leftAction="back" onLeftAction={noop} style={{opacity: 0}} />
+export const HeaderLeftBlank = React.memo(
+  function HeaderLeftBlank() {
+    return <LeftAction badgeNumber={0} leftAction="back" onLeftAction={noop} style={{opacity: 0}} />
+  },
+  () => true
 )
-export const HeaderLeftBlank = React.memo(HeaderLeftBlank_, () => true)
 
-const HeaderLeftArrow_ = (hp: {
+export const HeaderLeftArrow = React.memo(function HeaderLeftArrow(hp: {
   canGoBack?: boolean
   badgeNumber?: number
   onPress: () => void
   tintColor: string
-}) =>
-  hp.canGoBack ?? true ? (
+}) {
+  return hp.canGoBack ?? true ? (
     <LeftAction
       badgeNumber={hp.badgeNumber ?? 0}
       leftAction="back"
@@ -366,16 +348,15 @@ const HeaderLeftArrow_ = (hp: {
       customIconColor={hp.tintColor}
     />
   ) : null
+})
 
-export const HeaderLeftArrow = React.memo(HeaderLeftArrow_)
-
-const HeaderLeftCancel_ = (hp: {
+export const HeaderLeftCancel = React.memo(function HeaderLeftCancel(hp: {
   canGoBack?: boolean
   badgeNumber?: number
   onPress: () => void
   tintColor: string
-}) =>
-  hp.canGoBack ?? true ? (
+}) {
+  return hp.canGoBack ?? true ? (
     <LeftAction
       badgeNumber={0}
       leftAction="cancel"
@@ -383,6 +364,20 @@ const HeaderLeftCancel_ = (hp: {
       customIconColor={hp.tintColor}
     />
   ) : null
+})
 
-export const HeaderLeftCancel = React.memo(HeaderLeftCancel_)
-export default HeaderHoc
+export const HeaderLeftCancel2 = React.memo(function HeaderLeftCancel(hp: {
+  canGoBack?: boolean
+  badgeNumber?: number
+  tintColor: string
+}) {
+  const navigation = useNavigation()
+  const onBack = React.useCallback(() => {
+    // @ts-ignore
+    navigation.pop()
+  }, [navigation])
+
+  return hp.canGoBack ?? true ? (
+    <LeftAction badgeNumber={0} leftAction="cancel" customIconColor={hp.tintColor} onLeftAction={onBack} />
+  ) : null
+})

@@ -1,12 +1,12 @@
 import * as React from 'react'
-import * as Types from '../../../constants/types/teams'
+import type * as Types from '../../../constants/types/teams'
 import * as Kb from '../../../common-adapters'
 import {InlineDropdown} from '../../../common-adapters/dropdown'
 import {globalColors, globalMargins, styleSheetCreate, platformStyles} from '../../../styles'
 import {isMobile} from '../../../constants/platform'
 import {FloatingRolePicker} from '../../role-picker'
 import {pluralize} from '../../../util/string'
-import * as RPCChatTypes from '../../../constants/types/rpc-chat-gen'
+import type * as RPCChatTypes from '../../../constants/types/rpc-chat-gen'
 import RetentionPicker from './retention/container'
 import * as Styles from '../../../styles'
 import DefaultChannels from './default-channels'
@@ -296,6 +296,7 @@ export class Settings extends React.Component<Props, State> {
       ...this.state,
       setBoolSettings: this.setBoolSettings,
     }
+
     return (
       <Kb.Box2 direction="horizontal" fullWidth={true} style={styles.outerBox}>
         <Kb.Box2 direction="vertical" alignItems="flex-start" style={styles.main}>

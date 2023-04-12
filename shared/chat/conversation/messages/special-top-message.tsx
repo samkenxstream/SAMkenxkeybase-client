@@ -7,17 +7,15 @@ import * as Kb from '../../../common-adapters'
 import * as RPCTypes from '../../../constants/types/rpc-gen'
 import * as React from 'react'
 import * as Styles from '../../../styles'
-import type * as Types from '../../../constants/types/chat2'
+import Separator from './separator'
+import {ConvoIDContext} from './ids-context'
 import HelloBotCard from './cards/hello-bot'
 import MakeTeamCard from './cards/make-team'
 import NewChatCard from './cards/new-chat'
 import ProfileResetNotice from './system-profile-reset-notice/container'
 import RetentionNotice from './retention-notice/container'
-
-type Props = {
-  conversationIDKey: Types.ConversationIDKey
-  measure: (() => void) | null
-}
+import shallowEqual from 'shallowequal'
+import {usingFlashList} from '../list-area/flashlist-config'
 
 const ErrorMessage = () => {
   const createConversationError = Container.useSelector(state => state.chat2.createConversationError)
@@ -118,27 +116,51 @@ const ErrorMessage = () => {
   )
 }
 
-const SpecialTopMessage = (props: Props) => {
-  const {conversationIDKey, measure} = props
-  const username = Container.useSelector(state => state.config.username)
+const SpecialTopMessage = React.memo(function SpecialTopMessage() {
+  const conversationIDKey = React.useContext(ConvoIDContext)
   const dispatch = Container.useDispatch()
 
+  const data = Container.useSelector(state => {
+    const username = state.config.username
+    const ordinals = state.chat2.messageOrdinals.get(conversationIDKey)
+    const hasLoadedEver = ordinals !== undefined
+    const ordinal = ordinals?.[0] ?? 0
+
+    const meta = Constants.getMeta(state, conversationIDKey)
+    const {teamType, supersedes, retentionPolicy, teamRetentionPolicy} = meta
+    const loadMoreType =
+      state.chat2.moreToLoadMap.get(conversationIDKey) !== false
+        ? ('moreToLoad' as const)
+        : ('noMoreToLoad' as const)
+
+    return {
+      hasLoadedEver,
+      loadMoreType,
+      ordinal,
+      retentionPolicy,
+      supersedes,
+      teamRetentionPolicy,
+      teamType,
+      username,
+    }
+  }, shallowEqual)
+  const {hasLoadedEver, loadMoreType, ordinal, retentionPolicy} = data
+  const {supersedes, teamType, teamRetentionPolicy, username} = data
   // we defer showing this so it doesn't flash so much
   const [allowDigging, setAllowDigging] = React.useState(false)
 
   React.useEffect(() => {
+    setAllowDigging(false)
     const id = setTimeout(() => {
       setAllowDigging(true)
-    }, 1000)
+    }, 3000)
     return () => clearTimeout(id)
-  }, [])
+  }, [ordinal])
 
-  const hasLoadedEver = Container.useSelector(
-    state => state.chat2.messageOrdinals.get(conversationIDKey) !== undefined
-  )
-  const meta = Container.useSelector(state => Constants.getMeta(state, conversationIDKey))
-  const participantInfo = Container.useSelector(state =>
-    Constants.getParticipantInfo(state, conversationIDKey)
+  // could not expose this and just return an enum for the is*convos
+  const participantInfoAll = Container.useSelector(
+    state => Constants.getParticipantInfo(state, conversationIDKey).all,
+    (a, b) => shallowEqual(a, b)
   )
 
   let pendingState: 'waiting' | 'error' | 'done'
@@ -153,25 +175,17 @@ const SpecialTopMessage = (props: Props) => {
       pendingState = 'done'
       break
   }
-  const loadMoreType = Container.useSelector(state =>
-    state.chat2.moreToLoadMap.get(conversationIDKey) !== false
-      ? ('moreToLoad' as const)
-      : ('noMoreToLoad' as const)
-  )
   const showTeamOffer =
-    hasLoadedEver &&
-    loadMoreType === 'noMoreToLoad' &&
-    meta.teamType === 'adhoc' &&
-    participantInfo.all.length > 2
-  const hasOlderResetConversation = meta.supersedes !== Constants.noConversationIDKey
+    hasLoadedEver && loadMoreType === 'noMoreToLoad' && teamType === 'adhoc' && participantInfoAll.length > 2
+  const hasOlderResetConversation = supersedes !== Constants.noConversationIDKey
   // don't show default header in the case of the retention notice being visible
   const showRetentionNotice =
-    meta.retentionPolicy.type !== 'retain' &&
-    !(meta.retentionPolicy.type === 'inherit' && meta.teamRetentionPolicy.type === 'retain')
+    retentionPolicy.type !== 'retain' &&
+    !(retentionPolicy.type === 'inherit' && teamRetentionPolicy.type === 'retain')
   const isHelloBotConversation =
-    meta.teamType === 'adhoc' && participantInfo.all.length === 2 && participantInfo.all.includes('hellobot')
+    teamType === 'adhoc' && participantInfoAll.length === 2 && participantInfoAll.includes('hellobot')
   const isSelfConversation =
-    meta.teamType === 'adhoc' && participantInfo.all.length === 1 && participantInfo.all.includes(username)
+    teamType === 'adhoc' && participantInfoAll.length === 1 && participantInfoAll.includes(username)
 
   const openPrivateFolder = React.useCallback(() => {
     dispatch(
@@ -179,21 +193,10 @@ const SpecialTopMessage = (props: Props) => {
     )
   }, [dispatch, username])
 
-  Container.useDepChangeEffect(() => {
-    measure?.()
-  }, [
-    loadMoreType,
-    showRetentionNotice,
-    hasOlderResetConversation,
-    pendingState,
-    showTeamOffer,
-    allowDigging,
-  ])
-
   return (
     <Kb.Box>
       {loadMoreType === 'noMoreToLoad' && showRetentionNotice && (
-        <RetentionNotice conversationIDKey={conversationIDKey} measure={measure} />
+        <RetentionNotice conversationIDKey={conversationIDKey} />
       )}
       <Kb.Box style={styles.spacer} />
       {hasOlderResetConversation && <ProfileResetNotice conversationIDKey={conversationIDKey} />}
@@ -225,9 +228,15 @@ const SpecialTopMessage = (props: Props) => {
           <Kb.Text type="BodySmallSemibold">Digging ancient messages...</Kb.Text>
         </Kb.Box>
       )}
+      {!Styles.isMobile || usingFlashList ? (
+        <Separator trailingItem={ordinal} leadingItem={undefined} />
+      ) : (
+        // special case here with the sep. The flatlist and flashlist invert the leading-trailing, see useReduxFast
+        <Separator trailingItem={0} leadingItem={ordinal} />
+      )}
     </Kb.Box>
   )
-}
+})
 
 const styles = Styles.styleSheetCreate(
   () =>

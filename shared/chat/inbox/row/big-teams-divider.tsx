@@ -10,7 +10,7 @@ type Props = {
   toggle: () => void
 }
 
-const BigTeamsDivider = React.memo((props: Props) => {
+const BigTeamsDivider = React.memo(function BigTeamsDivider(props: Props) {
   const {toggle} = props
   const badgeCount = Container.useSelector(state => state.chat2.bigTeamBadgeCount)
   return (
@@ -54,9 +54,13 @@ const styles = Styles.styleSheetCreate(
           top: undefined,
         },
         isMobile: {
-          backgroundColor: Styles.globalColors.fastBlank,
+          backgroundColor: Styles.globalColors.white,
+          bottom: 0,
           flexShrink: 0,
           height: RowSizes.floatingDivider,
+          left: 0,
+          position: 'absolute',
+          right: 0,
         },
       }),
       dividerBox: Styles.platformStyles({

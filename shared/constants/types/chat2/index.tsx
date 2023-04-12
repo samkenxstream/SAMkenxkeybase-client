@@ -8,15 +8,6 @@ import type * as Team from '../teams'
 import type * as TeamBuildingTypes from '../team-building'
 import type * as Wallet from '../wallets'
 import type HiddenString from '../../../util/hidden-string'
-import type {AmpTracker} from '../../../chat/audio/amptracker'
-
-export type QuoteInfo = {
-  // Always positive and monotonically increasing.
-  counter: number
-  ordinal: _Message.Ordinal
-  sourceConversationIDKey: Common.ConversationIDKey
-  targetConversationIDKey: Common.ConversationIDKey
-}
 
 export type PaymentConfirmInfo = {
   error?: RPCTypes.Status
@@ -127,31 +118,6 @@ export type Coordinate = {
   lon: number
 }
 
-export enum AudioRecordingStatus {
-  INITIAL = 0,
-  RECORDING,
-  STAGED,
-  STOPPED,
-  CANCELLED,
-}
-
-export enum AudioStopType {
-  CANCEL = 0,
-  RELEASE,
-  SEND,
-  STOPBUTTON,
-}
-
-export type AudioRecordingInfo = {
-  status: AudioRecordingStatus
-  outboxID: Buffer
-  path: string
-  recordEnd?: number
-  recordStart: number
-  isLocked: boolean
-  amps?: AmpTracker
-}
-
 export type BlockButtonsInfo = {
   adder: string
 }
@@ -180,11 +146,12 @@ export type ParticipantInfo = {
 }
 
 // Corresponds to skinTones in emoji-datasource.
-export type EmojiSkinTone = '1F3FB' | '1F3FC' | '1F3FD' | '1F3FE' | '1F3FF'
+export type EmojiSkinTone = '1F3FA' | '1F3FB' | '1F3FC' | '1F3FD' | '1F3FE' | '1F3FF'
 
 export const EmojiSkinToneToRPC = (emojiSkinTone: undefined | EmojiSkinTone): RPCTypes.ReacjiSkinTone => {
   switch (emojiSkinTone) {
     case undefined:
+    case '1F3FA':
       return RPCTypes.ReacjiSkinTone.none
     case '1F3FB':
       return RPCTypes.ReacjiSkinTone.skintone1
@@ -219,6 +186,7 @@ export const EmojiSkinToneFromRPC = (reacjiSkinTone: RPCTypes.ReacjiSkinTone): u
 export const SkinToneToDotColor = (skinTone: undefined | EmojiSkinTone): string => {
   switch (skinTone) {
     case undefined:
+    case '1F3FA':
       return '#ffc93a'
     case '1F3FB':
       return '#fadcbc'
@@ -233,6 +201,13 @@ export const SkinToneToDotColor = (skinTone: undefined | EmojiSkinTone): string 
   }
 }
 
+export type RenderMessageType =
+  | _Message.MessageType
+  | 'attachment:image'
+  | 'attachment:audio'
+  | 'attachment:file'
+  | 'attachment:video'
+
 export type State = {
   readonly accountsInfoMap: Map<
     Common.ConversationIDKey,
@@ -242,7 +217,6 @@ export type State = {
     Common.ConversationIDKey,
     Map<RPCChatTypes.GalleryItemTyp, AttachmentViewInfo>
   >
-  readonly audioRecording: Map<Common.ConversationIDKey, AudioRecordingInfo>
   readonly badgeMap: ConversationCountMap // id to the badge count,
   readonly smallTeamBadgeCount: number
   readonly bigTeamBadgeCount: number
@@ -283,18 +257,18 @@ export type State = {
   readonly maybeMentionMap: Map<string, RPCChatTypes.UIMaybeMentionInfo>
   readonly messageCenterOrdinals: Map<Common.ConversationIDKey, CenterOrdinal> // ordinals to center threads on,
   readonly messageMap: Map<Common.ConversationIDKey, Map<_Message.Ordinal, _Message.Message>> // messages in a thread,
-  readonly messageOrdinals: Map<Common.ConversationIDKey, Set<_Message.Ordinal>> // ordered ordinals in a thread,
+  readonly messageTypeMap: Map<Common.ConversationIDKey, Map<_Message.Ordinal, RenderMessageType>> // messages types to help the thread, text is never used
+  readonly messageOrdinals: Map<Common.ConversationIDKey, Array<_Message.Ordinal>> // ordered ordinals in a thread,
   readonly metaMap: MetaMap // metadata about a thread, There is a special node for the pending conversation,
   readonly moreToLoadMap: Map<Common.ConversationIDKey, boolean> // if we have more data to load,
   readonly mutedMap: Map<Common.ConversationIDKey, boolean> // muted convs
   readonly mutualTeamMap: Map<Common.ConversationIDKey, Array<Team.TeamID>>
   readonly orangeLineMap: Map<Common.ConversationIDKey, number> // last message we've seen,
+  readonly markedAsUnreadMap: Map<Common.ConversationIDKey, boolean> // store a bit if we've marked this thread as unread so we don't mark as read when navgiating away
   readonly participantMap: Map<Common.ConversationIDKey, ParticipantInfo>
   readonly paymentConfirmInfo?: PaymentConfirmInfo // chat payment confirm screen data,
   readonly paymentStatusMap: Map<Wallet.PaymentID, _Message.ChatPaymentInfo>
   readonly pendingOutboxToOrdinal: Map<Common.ConversationIDKey, Map<_Message.OutboxID, _Message.Ordinal>> // messages waiting to be sent,
-  readonly prependTextMap: Map<Common.ConversationIDKey, HiddenString | null>
-  readonly quote?: QuoteInfo // last quoted message,
   readonly replyToMap: Map<Common.ConversationIDKey, _Message.Ordinal>
   readonly smallTeamsExpanded: boolean // if we're showing all small teams,
   readonly staticConfig?: StaticConfig // static config stuff from the service. only needs to be loaded once. if null, it hasn't been loaded,

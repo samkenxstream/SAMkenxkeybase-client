@@ -1,11 +1,12 @@
+// this file is ignored by ts
 // @ts-nocheck
-module.hot &&
-  module.hot.accept(() => {
-    console.log('accepted update in common-adapters/mobile.native')
-  })
+module.hot?.accept(() => {
+  console.log('accepted update in common-adapters/mobile.native')
+})
 
-const Index = require('.')
+const Index = require('./index.native')
 const NativeWrappers = require('./native-wrappers.native')
+const GPortal = require('./portal.native')
 
 module.exports = {
   get Animated() {
@@ -128,9 +129,6 @@ module.exports = {
   get HeaderOrPopupWithHeader() {
     return Index.HeaderOrPopupWithHeader
   },
-  get HoverHoc() {
-    return Index.HoverHoc
-  },
   get Icon() {
     return Index.Icon
   },
@@ -145,6 +143,9 @@ module.exports = {
   },
   get KeyboardAvoidingView() {
     return Index.KeyboardAvoidingView
+  },
+  get KeyboardAvoidingView2() {
+    return Index.KeyboardAvoidingView2
   },
   get LabeledInput() {
     return Index.LabeledInput
@@ -181,9 +182,6 @@ module.exports = {
   },
   get ModalHeader() {
     return Index.ModalHeader
-  },
-  get MultiAvatar() {
-    return Index.MultiAvatar
   },
   get NameWithIcon() {
     return Index.NameWithIcon
@@ -242,11 +240,11 @@ module.exports = {
   get NativePicker() {
     return NativeWrappers.NativePicker
   },
+  get NativePressable() {
+    return NativeWrappers.NativePressable
+  },
   get NativeRefreshControl() {
     return NativeWrappers.NativeRefreshControl
-  },
-  get NativeSafeAreaView() {
-    return NativeWrappers.NativeSafeAreaView
   },
   get NativeScrollView() {
     return NativeWrappers.NativeScrollView
@@ -296,9 +294,6 @@ module.exports = {
   get Overlay() {
     return Index.Overlay
   },
-  get OverlayParentHOC() {
-    return Index.OverlayParentHOC
-  },
   get Placeholder() {
     return Index.Placeholder
   },
@@ -314,11 +309,17 @@ module.exports = {
   get PopupDialog() {
     return Index.PopupDialog
   },
-  get PopupDialogHoc() {
-    return Index.PopupDialogHoc
-  },
   get PopupHeaderText() {
     return Index.PopupHeaderText
+  },
+  get PortalProvider() {
+    return require('./portal.native').PortalProvider
+  },
+  get PortalHost() {
+    return require('./portal.native').PortalHost
+  },
+  get Portal() {
+    return require('./portal.native').Portal
   },
   get ProgressBar() {
     return Index.ProgressBar
@@ -377,9 +378,6 @@ module.exports = {
   get StandardScreen() {
     return Index.StandardScreen
   },
-  get Swipeable() {
-    return require('react-native-gesture-handler/Swipeable').default
-  },
   get Switch() {
     return Index.Switch
   },
@@ -430,6 +428,9 @@ module.exports = {
   },
   get useMounted() {
     return Index.useMounted
+  },
+  get usePopup() {
+    return Index.usePopup
   },
   get useSafeAreaInsets() {
     return Index.useSafeAreaInsets

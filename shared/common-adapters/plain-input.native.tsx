@@ -1,53 +1,46 @@
-import React, {Component} from 'react'
-import {TextInput} from 'react-native'
-import {getStyle as getTextStyle} from './text'
-import {NativeTextInput} from './native-wrappers.native'
-import {
-  collapseStyles,
-  globalColors,
-  globalMargins,
-  padding,
-  platformStyles,
-  styleSheetCreate,
-  isDarkMode,
-} from '../styles'
-import {isIOS} from '../constants/platform'
-import {checkTextInfo} from './input.shared'
-import pick from 'lodash/pick'
-import logger from '../logger'
+import * as React from 'react'
+import * as Styles from '../styles'
 import ClickableBox from './clickable-box'
+import logger from '../logger'
+import pick from 'lodash/pick'
+import type {InternalProps, TextInfo, Selection} from './plain-input'
+import type {TextInput} from 'react-native'
 import {Box2} from './box'
-
-import {InternalProps, TextInfo, Selection} from './plain-input'
+import {NativeTextInput} from './native-wrappers.native'
+import {checkTextInfo} from './input.shared'
+import {getStyle as getTextStyle} from './text'
+import {isIOS} from '../constants/platform'
+import PasteInput from '@mattermost/react-native-paste-input'
+import noop from 'lodash/noop'
 
 // A plain text input component. Handles callbacks, text styling, and auto resizing but
 // adds no styling.
-class PlainInput extends Component<InternalProps> {
+class PlainInput extends React.PureComponent<InternalProps> {
   static defaultProps = {
     keyboardType: 'default',
     textType: 'Body',
   }
 
+  _mounted = true
   _input = React.createRef<TextInput>()
   _lastNativeText: string | null = null
   _lastNativeSelection: Selection | null = null
-  _timeoutIDs: Array<ReturnType<typeof setInterval>> = []
 
-  _setTimeout = (fn: () => void, timeoutMS: number) => {
-    this._timeoutIDs.push(setTimeout(fn, timeoutMS))
+  get value() {
+    return this._lastNativeText ?? ''
   }
 
   // This is controlled if a value prop is passed
   _controlled = () => typeof this.props.value === 'string'
 
-  componentWillUnmount() {
-    this._timeoutIDs.forEach(clearTimeout)
-  }
-
   // Needed to support wrapping with e.g. a ClickableBox. See
   // https://facebook.github.io/react-native/docs/direct-manipulation.html .
   setNativeProps = (nativeProps: Object) => {
-    this._input.current && this._input.current.setNativeProps(nativeProps)
+    this._input.current?.setNativeProps(nativeProps)
+  }
+
+  componentWillUnmount() {
+    this._mounted = false
   }
 
   transformText = (fn: (textInfo: TextInfo) => TextInfo, reflectChange: boolean) => {
@@ -64,15 +57,16 @@ class PlainInput extends Component<InternalProps> {
     const newTextInfo = fn(currentTextInfo)
     const newCheckedSelection = this._sanityCheckSelection(newTextInfo.selection, newTextInfo.text)
     checkTextInfo(newTextInfo)
-    if (isIOS) {
-      this.setNativeProps({text: newTextInfo.text})
-      // hacky workaround to RN input crappiness, otherwise leaves the selection randomly inside
-      setTimeout(() => {
-        this.setNativeProps({selection: newCheckedSelection})
-      }, 1)
+    this.setNativeProps({text: newTextInfo.text})
+    // selection is pretty flakey on RN, skip if its at the end?
+    if (
+      newCheckedSelection.start === newCheckedSelection.end &&
+      newCheckedSelection.start === newTextInfo.text.length
+    ) {
     } else {
-      this.setNativeProps({text: newTextInfo.text})
-      this.setNativeProps({selection: newCheckedSelection})
+      setTimeout(() => {
+        this._mounted && this.setNativeProps({selection: newCheckedSelection})
+      }, 100)
     }
     this._lastNativeText = newTextInfo.text
     this._lastNativeSelection = newCheckedSelection
@@ -102,11 +96,9 @@ class PlainInput extends Component<InternalProps> {
   }
 
   _setSelection = (selection: Selection) => {
-    this._setTimeout(() => {
-      const newSelection = this._sanityCheckSelection(selection, this._lastNativeText || '')
-      this.setNativeProps({selection: newSelection})
-      this._lastNativeSelection = selection
-    }, 0)
+    const newSelection = this._sanityCheckSelection(selection, this._lastNativeText || '')
+    this.setNativeProps({selection: newSelection})
+    this._lastNativeSelection = selection
   }
 
   _onChangeText = (t: string) => {
@@ -117,7 +109,7 @@ class PlainInput extends Component<InternalProps> {
       }
     }
     this._lastNativeText = t
-    this.props.onChangeText && this.props.onChangeText(t)
+    this.props.onChangeText?.(t)
   }
 
   _onSelectionChange = (event: {
@@ -131,7 +123,7 @@ class PlainInput extends Component<InternalProps> {
     const start = Math.min(_start || 0, _end || 0)
     const end = Math.max(_start || 0, _end || 0)
     this._lastNativeSelection = {end, start}
-    this.props.onSelectionChange && this.props.onSelectionChange(this._lastNativeSelection)
+    this.props.onSelectionChange?.(this._lastNativeSelection)
   }
 
   _lineHeight = () => {
@@ -146,24 +138,28 @@ class PlainInput extends Component<InternalProps> {
 
   focus = () => {
     if (this.props.dummyInput) {
-      this.props.onFocus && this.props.onFocus()
+      this.props.onFocus?.()
     } else {
-      this._input.current && this._input.current.focus()
+      this._input.current?.focus()
     }
   }
 
-  blur = () => {
-    this._input.current && this._input.current.blur()
+  clear = () => {
+    this._input.current?.clear()
   }
 
-  isFocused = () => !!this._input.current && this._input.current.isFocused()
+  blur = () => {
+    this._input.current?.blur()
+  }
+
+  isFocused = () => !!this._input.current?.isFocused()
 
   _onFocus = () => {
-    this.props.onFocus && this.props.onFocus()
+    this.props.onFocus?.()
   }
 
   _onBlur = () => {
-    this.props.onBlur && this.props.onBlur()
+    this.props.onBlur?.()
   }
 
   _getCommonStyle = () => {
@@ -172,14 +168,16 @@ class PlainInput extends Component<InternalProps> {
     if (isIOS) {
       delete textStyle.lineHeight
     }
-    return collapseStyles([styles.common, textStyle] as any)
+    return Styles.collapseStyles([styles.common, textStyle] as any)
   }
 
   _getMultilineStyle = () => {
     const defaultRowsToShow = Math.min(2, this.props.rowsMax || 2)
     const lineHeight = this._lineHeight()
-    const paddingStyles: any = this.props.padding ? padding(globalMargins[this.props.padding]) : {}
-    return collapseStyles([
+    const paddingStyles: any = this.props.padding
+      ? Styles.padding(Styles.globalMargins[this.props.padding])
+      : {}
+    return Styles.collapseStyles([
       styles.multiline,
       {
         minHeight: (this.props.rowsMin || defaultRowsToShow) * lineHeight,
@@ -191,11 +189,11 @@ class PlainInput extends Component<InternalProps> {
 
   _getSinglelineStyle = () => {
     const lineHeight = this._lineHeight()
-    return collapseStyles([styles.singleline, {maxHeight: lineHeight, minHeight: lineHeight}])
+    return Styles.collapseStyles([styles.singleline, {maxHeight: lineHeight, minHeight: lineHeight}])
   }
 
   _getStyle = () => {
-    return collapseStyles([
+    return Styles.collapseStyles([
       this._getCommonStyle(),
       this.props.multiline ? this._getMultilineStyle() : this._getSinglelineStyle(),
       this.props.style,
@@ -203,7 +201,7 @@ class PlainInput extends Component<InternalProps> {
   }
 
   _getProps = () => {
-    const common = {
+    let common = {
       ...pick(this.props, ['maxLength', 'value']), // Props we should only passthrough if supplied
       allowFontScaling: this.props.allowFontScaling,
       autoCapitalize: this.props.autoCapitalize || 'none',
@@ -211,7 +209,9 @@ class PlainInput extends Component<InternalProps> {
       autoFocus: this.props.autoFocus,
       children: this.props.children,
       editable: !this.props.disabled,
-      keyboardAppearance: isIOS ? (isDarkMode() ? 'dark' : 'light') : undefined,
+      // needed to workaround changing this not doing the right thing
+      key: this.props.type,
+      keyboardAppearance: isIOS ? (Styles.isDarkMode() ? 'dark' : 'light') : undefined,
       keyboardType: this.props.keyboardType,
       multiline: false,
       onBlur: this._onBlur,
@@ -219,10 +219,11 @@ class PlainInput extends Component<InternalProps> {
       onEndEditing: this.props.onEndEditing,
       onFocus: this._onFocus,
       onKeyPress: this.props.onKeyPress,
+      onPaste: this.props.onPasteImage,
       onSelectionChange: this._onSelectionChange,
       onSubmitEditing: this.props.onEnterKeyDown,
       placeholder: this.props.placeholder,
-      placeholderTextColor: this.props.placeholderColor || globalColors.black_35,
+      placeholderTextColor: this.props.placeholderColor || Styles.globalColors.black_35,
       ref: this._input,
       returnKeyType: this.props.returnKeyType,
       secureTextEntry: this.props.type === 'password' || this.props.secureTextEntry,
@@ -231,6 +232,14 @@ class PlainInput extends Component<InternalProps> {
       textContentType: this.props.textContentType,
       underlineColorAndroid: 'transparent',
     } as const
+
+    if (this.props.allowImagePaste) {
+      common = {
+        ...common,
+        // @ts-ignore, we let this just bubble up
+        onDropped: noop,
+      }
+    }
 
     if (this.props.multiline) {
       return {
@@ -244,6 +253,8 @@ class PlainInput extends Component<InternalProps> {
 
   render() {
     const props = this._getProps()
+    const Clazz: typeof NativeTextInput = this.props.allowImagePaste ? (PasteInput as any) : NativeTextInput
+
     if (props.value) {
       this._lastNativeText = props.value
     }
@@ -257,18 +268,18 @@ class PlainInput extends Component<InternalProps> {
       return (
         <ClickableBox style={{flexGrow: 1}} onClick={props.onFocus}>
           <Box2 direction="horizontal" pointerEvents="none">
-            <NativeTextInput {...props} editable={false} />
+            <Clazz {...props} editable={false} />
           </Box2>
         </ClickableBox>
       )
     }
-    return <NativeTextInput {...props} />
+    return <Clazz {...props} />
   }
 }
 
-const styles = styleSheetCreate(() => ({
-  common: {backgroundColor: globalColors.fastBlank, borderWidth: 0, flexGrow: 1},
-  multiline: platformStyles({
+const styles = Styles.styleSheetCreate(() => ({
+  common: {backgroundColor: Styles.globalColors.fastBlank, borderWidth: 0, flexGrow: 1},
+  multiline: Styles.platformStyles({
     isMobile: {
       height: undefined,
       textAlignVertical: 'top', // android centers by default

@@ -9,12 +9,23 @@ import webpack from 'webpack'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin')
 
+// why did you render
+const enableWDYR = false
+
 // When we start the hot server we want to build the main/dll without hot reloading statically
 const config = (_, {mode}) => {
   const isDev = mode !== 'production'
   const isHot = isDev && !!process.env['HOT']
+  const isProfile = !isDev && !!process.env['PROFILE']
+  if (isProfile) {
+    for (let i = 0; i < 10; ++i) {
+      console.log('Webpack profiling on')
+    }
+  }
 
-  console.error('Flags: ', {isDev, isHot})
+  const fileSuffix = isDev ? '.dev' : isProfile ? '.profile' : ''
+
+  console.error('Flags: ', {isDev, isHot, isProfile})
 
   const makeRules = nodeThread => {
     const babelRule = {
@@ -25,18 +36,45 @@ const config = (_, {mode}) => {
         plugins: [...(isHot && !nodeThread ? ['react-refresh/babel'] : [])],
         presets: [
           ['@babel/preset-env', {debug: false, modules: false, targets: {electron: '19.0.4'}}],
+          [
+            '@babel/preset-react',
+            {
+              runtime: 'automatic',
+              development: isDev,
+              ...(isDev && enableWDYR ? {importSource: '@welldone-software/why-did-you-render'} : {}),
+            },
+          ],
           '@babel/preset-typescript',
         ],
       },
     }
 
     return [
+      ...(isDev
+        ? []
+        : [
+            {
+              // Don't include why did you render
+              include: /welldone/,
+              test: /\.(ts|js)x?$/,
+              use: ['null-loader'],
+            },
+          ]),
       {
         // Don't include large mock images in a prod build
         include: path.resolve(__dirname, '../images/mock'),
         test: /\.jpg$/,
         ...(isDev ? {type: 'asset/resource'} : {use: ['null-loader']}),
       },
+      {
+        include: path.resolve(
+          __dirname,
+          '../node_modules/@react-navigation/native-stack/node_modules/@react-navigation/elements/lib/module/assets'
+        ),
+        test: /\.(native\.js|gif|png|jpg)$/,
+        use: ['null-loader'],
+      },
+
       {
         include: path.resolve(__dirname, '../node_modules/@react-navigation/elements/lib/module/assets'),
         test: /\.(native\.js|gif|png|jpg)$/,
@@ -83,6 +121,8 @@ const config = (_, {mode}) => {
   const makeCommonConfig = () => {
     // If we use the hot server it pulls in this config
     const defines = {
+      __FILE_SUFFIX__: JSON.stringify(fileSuffix),
+      __PROFILE__: isProfile,
       __DEV__: isDev,
       __HOT__: isHot,
       __STORYBOOK__: false,
@@ -96,18 +136,21 @@ const config = (_, {mode}) => {
       'react-native-reanimated': false,
     }
     if (isDev) {
-      // enable why did you render
-      alias['react-redux'] = 'react-redux/dist/react-redux.js'
+    } else {
+      if (isProfile) {
+        alias['react-dom$'] = 'react-dom/profiling'
+      }
+      alias['@welldone-software/why-did-you-render'] = false
     }
 
     return {
       bail: true,
       context: path.resolve(__dirname, '..'),
-      devtool: isDev ? 'eval' : 'source-map',
+      devtool: isDev ? 'cheap-module-source-map' : 'source-map',
       mode: isDev ? 'development' : 'production',
       node: false,
       output: {
-        filename: `[name]${isDev ? '.dev' : ''}.bundle.js`,
+        filename: `[name]${fileSuffix}.bundle.js`,
         path: path.resolve(__dirname, 'dist'),
         // can be the same?
         publicPath,
@@ -165,7 +208,7 @@ const config = (_, {mode}) => {
     target: 'electron-main',
   })
 
-  const makeHtmlName = name => `${name}${isDev ? '.dev' : ''}.html`
+  const makeHtmlName = name => `${name}${fileSuffix}.html`
   const makeViewPlugins = names =>
     [
       // needed to help webpack and electron renderer
@@ -193,7 +236,7 @@ const config = (_, {mode}) => {
     object-src 'self' http://127.0.0.1:*;
     frame-src http://127.0.0.1:*;
     font-src 'self' ${htmlWebpackPlugin.options.isDev ? 'http://localhost:4000' : ''};
-    media-src http://127.0.0.1:*;
+    media-src 'self' http://127.0.0.1:*;
     img-src 'self' data: http://127.0.0.1:* https://keybase.io/ https://pbs.twimg.com/ https://avatars.githubusercontent.com/ https://s3.amazonaws.com/keybase_processed_uploads/ ${
       htmlWebpackPlugin.options.isDev ? 'http://localhost:4000' : ''
     };

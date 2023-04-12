@@ -25,7 +25,7 @@ const markdownStyles = Styles.styleSheetCreate(
         },
         isMobile: {
           fontSize: 32,
-          lineHeight: undefined,
+          lineHeight: 39.5, // matches 40 px height
         },
       } as const),
       boldStyle: Styles.platformStyles({
@@ -330,7 +330,7 @@ const reactComponentsForMarkdownType = {
         json={node.content}
         key={state.key}
         allowFontScaling={state.allowFontScaling}
-        message={(state.markdownMeta && state.markdownMeta.message) || undefined}
+        messageType={state.messageType}
         styleOverride={state.styleOverride}
         styles={markdownStyles as any}
         disableBigEmojis={false}

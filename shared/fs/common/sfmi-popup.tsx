@@ -6,21 +6,76 @@ import {useFuseClosedSourceConsent} from './hooks'
 import * as FsGen from '../../actions/fs-gen'
 import {fileUIName} from '../../constants/platform'
 import * as Container from '../../util/container'
+import shallowEqual from 'shallowequal'
 
 type Props = {
   mode: 'Icon' | 'Button'
 }
 
-export default Kb.OverlayParentHOC((props: Props & Kb.OverlayParentProps) => {
-  const driverStatus = Container.useSelector(state => state.fs.sfmi.driverStatus)
+const SFMIPopup = (props: Props) => {
+  const {isEnabling, type} = Container.useSelector(state => {
+    const {driverStatus} = state.fs.sfmi
+    const {type} = driverStatus
+    const isEnabling = type === Types.DriverStatusType.Disabled ? driverStatus.isEnabling : false
+    return {isEnabling, type}
+  }, shallowEqual)
   const dispatch = Container.useDispatch()
-  const enableDriver = () => dispatch(FsGen.createDriverEnable())
+  const enableDriver = React.useCallback(() => {
+    dispatch(FsGen.createDriverEnable())
+  }, [dispatch])
   const {canContinue, component: fuseConsentComponent} = useFuseClosedSourceConsent(
-    driverStatus.type === Types.DriverStatusType.Disabled && driverStatus.isEnabling,
+    type === Types.DriverStatusType.Disabled && isEnabling,
     undefined,
     undefined
   )
-  if (driverStatus.type !== Types.DriverStatusType.Disabled) {
+
+  const makePopup = React.useCallback(
+    (p: Kb.Popup2Parms) => {
+      const {attachTo, toggleShowingPopup} = p
+
+      return (
+        <Kb.Overlay
+          style={styles.popup}
+          attachTo={attachTo}
+          onHidden={toggleShowingPopup}
+          position="bottom right"
+        >
+          <Kb.Box
+            style={styles.container}
+            onClick={e => {
+              e.stopPropagation()
+            }}
+          >
+            <Kb.Box2 direction="horizontal" centerChildren={true} style={styles.fancyFinderIcon}>
+              <Kb.Icon type="icon-fancy-finder-132-96" />
+            </Kb.Box2>
+            <Kb.Text type="BodyBig" style={styles.text}>
+              Enable Keybase in {fileUIName}?
+            </Kb.Text>
+            <Kb.Text type="BodySmall" style={styles.text} center={true}>
+              Get access to your files and folders just like you normally do with your local files. It's
+              encrypted and secure.
+            </Kb.Text>
+            <Kb.Divider style={styles.divider} />
+            {fuseConsentComponent}
+            <Kb.Box2 direction="horizontal" fullWidth={true} centerChildren={true} style={styles.buttonBox}>
+              <Kb.Button
+                type="Success"
+                label="Yes, enable"
+                waiting={type === Types.DriverStatusType.Disabled && isEnabling}
+                disabled={!canContinue}
+                onClick={enableDriver}
+              />
+            </Kb.Box2>
+          </Kb.Box>
+        </Kb.Overlay>
+      )
+    },
+    [canContinue, isEnabling, enableDriver, fuseConsentComponent, type]
+  )
+  const {toggleShowingPopup, popup, popupAnchor} = Kb.usePopup2(makePopup)
+
+  if (type !== Types.DriverStatusType.Disabled) {
     return null
   }
   return (
@@ -33,8 +88,8 @@ export default Kb.OverlayParentHOC((props: Props & Kb.OverlayParentProps) => {
             fontSize={16}
             color={Styles.globalColors.black_50}
             hoverColor={Styles.globalColors.black}
-            onClick={props.toggleShowingMenu}
-            ref={props.setAttachmentRef}
+            onClick={toggleShowingPopup}
+            ref={popupAnchor as any}
           />
         </Kb.WithTooltip>
       ) : (
@@ -42,49 +97,14 @@ export default Kb.OverlayParentHOC((props: Props & Kb.OverlayParentProps) => {
           mode="Secondary"
           small={true}
           label={`Enable ${fileUIName} integration`}
-          onClick={props.toggleShowingMenu}
-          ref={props.setAttachmentRef}
+          onClick={toggleShowingPopup}
+          ref={popupAnchor}
         />
       )}
-      <Kb.Overlay
-        style={styles.popup}
-        attachTo={props.getAttachmentRef}
-        visible={props.showingMenu}
-        onHidden={props.toggleShowingMenu}
-        position="bottom right"
-      >
-        <Kb.Box
-          style={styles.container}
-          onClick={e => {
-            e.stopPropagation()
-          }}
-        >
-          <Kb.Box2 direction="horizontal" centerChildren={true} style={styles.fancyFinderIcon}>
-            <Kb.Icon type="icon-fancy-finder-132-96" />
-          </Kb.Box2>
-          <Kb.Text type="BodyBig" style={styles.text}>
-            Enable Keybase in {fileUIName}?
-          </Kb.Text>
-          <Kb.Text type="BodySmall" style={styles.text} center={true}>
-            Get access to your files and folders just like you normally do with your local files. It's
-            encrypted and secure.
-          </Kb.Text>
-          <Kb.Divider style={styles.divider} />
-          {fuseConsentComponent}
-          <Kb.Box2 direction="horizontal" fullWidth={true} centerChildren={true} style={styles.buttonBox}>
-            <Kb.Button
-              type="Success"
-              label="Yes, enable"
-              waiting={driverStatus.isEnabling}
-              disabled={!canContinue}
-              onClick={enableDriver}
-            />
-          </Kb.Box2>
-        </Kb.Box>
-      </Kb.Overlay>
+      {popup}
     </>
   )
-})
+}
 
 const styles = Styles.styleSheetCreate(() => ({
   buttonBox: {
@@ -119,3 +139,4 @@ const styles = Styles.styleSheetCreate(() => ({
     paddingTop: Styles.globalMargins.tiny,
   },
 }))
+export default SFMIPopup

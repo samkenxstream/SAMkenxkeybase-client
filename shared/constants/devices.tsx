@@ -2,7 +2,7 @@ import * as SettingsConstants from './settings'
 import * as Tabs from './tabs'
 import * as Types from './types/devices'
 import * as WaitingConstants from './waiting'
-import * as RPCTypes from './types/rpc-gen'
+import type * as RPCTypes from './types/rpc-gen'
 import * as Container from '../util/container'
 import {memoize} from '../util/memoize'
 
@@ -62,8 +62,9 @@ export const getDeviceCounts = (state: Container.TypedState) =>
     {numActive: 0, numRevoked: 0}
   )
 
+const emptySet = new Set<string>()
 export const getEndangeredTLFs = (state: Container.TypedState, id?: Types.DeviceID): Set<string> =>
-  (id && state.devices.endangeredTLFMap.get(id)) || Container.emptySet
+  (id && state.devices.endangeredTLFMap.get(id)) || emptySet
 
 // Utils for mapping a device to one of the icons
 

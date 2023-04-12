@@ -14,7 +14,7 @@ import KB2 from '../../util/electron.desktop'
 
 const {mainWindowDispatch} = KB2.functions
 
-const htmlFile = `${htmlPrefix}${assetRoot}menubar${__DEV__ ? '.dev' : ''}.html?param=menubar`
+const htmlFile = `${htmlPrefix}${assetRoot}menubar${__FILE_SUFFIX__}.html?param=menubar`
 
 // support dynamic dark mode system bar in big sur
 const useImageTemplate = os.platform() === 'darwin' && parseInt(os.release().split('.')[0], 10) >= 20
@@ -30,7 +30,7 @@ type Bounds = {
   height: number
 }
 
-export default (menubarWindowIDCallback: (id: number) => void) => {
+const MenuBar = (menubarWindowIDCallback: (id: number) => void) => {
   const icon = Electron.nativeImage.createFromPath(getAssetPath('images', 'menubarIcon', iconPath))
   if (useImageTemplate && !iconPathIsBadged) {
     icon.setTemplateImage(true)
@@ -45,7 +45,7 @@ export default (menubarWindowIDCallback: (id: number) => void) => {
         contextIsolation: true,
         nodeIntegration: false,
         nodeIntegrationInWorker: false,
-        preload: `${assetRoot}preload${__DEV__ ? '.dev' : ''}.bundle.js`,
+        preload: `${assetRoot}preload${__FILE_SUFFIX__}.bundle.js`,
       },
       width: 360,
     },
@@ -221,3 +221,4 @@ export default (menubarWindowIDCallback: (id: number) => void) => {
     })
   }
 }
+export default MenuBar

@@ -1,63 +1,19 @@
-import * as React from 'react'
-import type * as Types from '../../../constants/types/chat2'
-import * as Constants from '../../../constants/chat2'
-import * as Kb from '../../../common-adapters/mobile.native'
 import * as Chat2Gen from '../../../actions/chat2-gen'
-import * as RouteTreeGen from '../../../actions/route-tree-gen'
-import {ChannelHeader, UsernameHeader, PhoneOrEmailHeader, type Props} from './index.native'
-import {HeaderLeftArrow} from '../../../common-adapters/header-hoc'
+import * as Constants from '../../../constants/chat2'
 import * as Container from '../../../util/container'
-import {createShowUserProfile} from '../../../actions/profile-gen'
-import {getVisiblePath} from '../../../constants/router2'
-import {getFullname} from '../../../constants/users'
+import {DebugChatDumpContext} from '../../../constants/chat2/debug'
+import * as Kb from '../../../common-adapters/mobile.native'
+import * as React from 'react'
 import * as Tabs from '../../../constants/tabs'
-import {Alert} from 'react-native'
-import {DEBUGDump as DEBUGDumpView} from '../list-area/index.native'
-import {DEBUGDump as DEBUGDumpStore} from '../../../store/configure-store'
+import type * as Types from '../../../constants/types/chat2'
+import {ChannelHeader, UsernameHeader, PhoneOrEmailHeader} from './index.native'
+import {HeaderLeftArrow} from '../../../common-adapters/header-hoc'
+import {getVisiblePath} from '../../../constants/router2'
 import {getRouteParamsFromRoute} from '../../../router-v2/route-params'
+import {Keyboard} from 'react-native'
 
 type OwnProps = {
   conversationIDKey: Types.ConversationIDKey
-  progress?: any
-}
-
-const HeaderBranch = (props: Props & {progress: any}) => {
-  const {progress, ...rest} = props
-
-  if (props.teamName) {
-    return <ChannelHeader {...rest} />
-  }
-
-  const isPhoneOrEmail = props.participants.some(
-    participant => participant.endsWith('@phone') || participant.endsWith('@email')
-  )
-
-  if (isPhoneOrEmail) {
-    return <PhoneOrEmailHeader {...rest} />
-  } else {
-    return <UsernameHeader {...rest} />
-  }
-}
-
-const DEBUGCHATMAYBE = (gotoNav: () => void) => {
-  if (!Constants.DEBUG_CHAT_DUMP) {
-    return
-  }
-  Alert.alert(
-    'Send chat debug info?',
-    'This is temporary tool to do a log send for chats. This will log extra info to the server, is this ok? After this you MUST log send',
-    [
-      {
-        onPress: () => {
-          const conversationIDKey = DEBUGDumpView()
-          DEBUGDumpStore(conversationIDKey ?? '')
-          gotoNav()
-        },
-        text: 'Ok',
-      },
-      {text: 'Nope'},
-    ]
-  )
 }
 
 export const HeaderAreaRight = (props: OwnProps) => {
@@ -68,94 +24,77 @@ export const HeaderAreaRight = (props: OwnProps) => {
 
   const dispatch = Container.useDispatch()
 
+  const {chatDebugDump} = React.useContext(DebugChatDumpContext)
+  const [showToast, setShowToast] = React.useState(false)
+
+  const dumpIcon = chatDebugDump ? (
+    <>
+      <Kb.SimpleToast iconType="iconfont-check" text="Logged, send feedback" visible={showToast} />
+      <Kb.Icon
+        type="iconfont-keybase"
+        onClick={() => {
+          chatDebugDump()
+          setShowToast(true)
+          setTimeout(() => {
+            setShowToast(false)
+          }, 2000)
+        }}
+        style={{marginLeft: -40}}
+      />
+    </>
+  ) : null
+
   const onShowInfoPanel = React.useCallback(
     () => dispatch(Chat2Gen.createShowInfoPanel({conversationIDKey, show: true})),
     [dispatch, conversationIDKey]
   )
-  const onToggleThreadSearch = React.useCallback(
-    () => dispatch(Chat2Gen.createToggleThreadSearch({conversationIDKey})),
-    [dispatch, conversationIDKey]
-  )
-  const onLongPress = React.useCallback(() => {
-    if (!Constants.DEBUG_CHAT_DUMP) {
-      return
-    }
-    DEBUGCHATMAYBE(() => dispatch(RouteTreeGen.createNavigateAppend({path: ['settingsTabs.feedbackTab']})))
-  }, [dispatch])
+  const onToggleThreadSearch = React.useCallback(() => {
+    // fix a race with the keyboard going away and coming back quickly
+    Keyboard.dismiss()
+    setTimeout(() => {
+      dispatch(Chat2Gen.createToggleThreadSearch({conversationIDKey}))
+    }, 100)
+  }, [dispatch, conversationIDKey])
   return pendingWaiting ? null : (
     <Kb.Box2 direction="horizontal" gap="small">
-      <Kb.Icon type="iconfont-search" onClick={onToggleThreadSearch} onLongPress={onLongPress} />
+      {dumpIcon}
+      <Kb.Icon type="iconfont-search" onClick={onToggleThreadSearch} />
       <Kb.Icon type="iconfont-info" onClick={onShowInfoPanel} />
     </Kb.Box2>
   )
 }
 
-// TODO remove this and connect the sub views
-export const HeaderArea = Container.connect(
-  (state, ownProps: OwnProps) => {
-    const {conversationIDKey} = ownProps
-    const meta = Constants.getMeta(state, conversationIDKey)
-    const participantInfo = Constants.getParticipantInfo(state, conversationIDKey)
-    const participants = meta.teamname ? null : participantInfo.name
-    const contactNames = participantInfo.contactName
-    const theirFullname =
-      participants?.length === 2
-        ? participants
-            .filter(username => username !== state.config.username)
-            .map(username => getFullname(state, username))[0]
-        : undefined
+enum HeaderType {
+  Team,
+  PhoneEmail,
+  User,
+}
 
-    return {
-      channelName: meta.channelname,
-      contactNames,
-      muted: meta.isMuted,
-      participants,
-      pendingWaiting:
-        conversationIDKey === Constants.pendingWaitingConversationIDKey ||
-        conversationIDKey === Constants.pendingErrorConversationIDKey,
-      smallTeam: meta.teamType !== 'big',
-      teamName: meta.teamname,
-      theirFullname,
+const HeaderBranchContainer = React.memo(function HeaderBranchContainer(p: OwnProps) {
+  const {conversationIDKey} = p
+  const type = Container.useSelector(state => {
+    const meta = Constants.getMeta(state, conversationIDKey)
+    const teamName = meta.teamname
+    if (teamName) {
+      return HeaderType.Team
     }
-  },
-  (dispatch: Container.TypedDispatch, {conversationIDKey}: OwnProps) => ({
-    onOpenFolder: () => dispatch(Chat2Gen.createOpenFolder({conversationIDKey})),
-    onShowInfoPanel: () => dispatch(Chat2Gen.createShowInfoPanel({conversationIDKey, show: true})),
-    onShowProfile: (username: string) => dispatch(createShowUserProfile({username})),
-    onToggleThreadSearch: () => dispatch(Chat2Gen.createToggleThreadSearch({conversationIDKey})),
-    unMuteConversation: () => dispatch(Chat2Gen.createMuteConversation({conversationIDKey, muted: false})),
-  }),
-  (stateProps, dispatchProps, ownProps: OwnProps) => {
-    const {
-      channelName,
-      contactNames,
-      muted,
-      participants,
-      pendingWaiting,
-      smallTeam,
-      teamName,
-      theirFullname,
-    } = stateProps
-    const {onOpenFolder, onShowProfile, onShowInfoPanel} = dispatchProps
-    const {onToggleThreadSearch, unMuteConversation} = dispatchProps
-    return {
-      channelName,
-      contactNames,
-      muted,
-      onOpenFolder,
-      onShowInfoPanel,
-      onShowProfile,
-      onToggleThreadSearch,
-      participants: participants || [],
-      pendingWaiting,
-      progress: ownProps.progress,
-      smallTeam,
-      teamName,
-      theirFullname,
-      unMuteConversation,
-    }
+    const participants = meta.teamname ? null : Constants.getParticipantInfo(state, conversationIDKey).name
+    const isPhoneOrEmail =
+      participants?.some(participant => participant.endsWith('@phone') || participant.endsWith('@email')) ??
+      false
+    return isPhoneOrEmail ? HeaderType.PhoneEmail : HeaderType.User
+  })
+
+  switch (type) {
+    case HeaderType.Team:
+      return <ChannelHeader conversationIDKey={conversationIDKey} />
+    case HeaderType.PhoneEmail:
+      return <PhoneOrEmailHeader conversationIDKey={conversationIDKey} />
+    case HeaderType.User:
+      return <UsernameHeader conversationIDKey={conversationIDKey} />
   }
-)(HeaderBranch)
+})
+export default HeaderBranchContainer
 
 const BadgeHeaderLeftArray = ({conversationIDKey, ...rest}) => {
   const visiblePath = getVisiblePath()
@@ -182,8 +121,6 @@ export const headerNavigationOptions = (route: unknown) => {
       return <BadgeHeaderLeftArray {...rest} conversationIDKey={conversationIDKey} />
     },
     headerRight: () => <HeaderAreaRight conversationIDKey={conversationIDKey} />,
-    headerTitle: () => <HeaderArea conversationIDKey={conversationIDKey} />,
+    headerTitle: () => <HeaderBranchContainer conversationIDKey={conversationIDKey} />,
   }
 }
-
-export default HeaderArea

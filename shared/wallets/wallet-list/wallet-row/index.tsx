@@ -1,4 +1,3 @@
-import * as React from 'react'
 import * as Kb from '../../../common-adapters'
 import * as Styles from '../../../styles'
 
@@ -73,16 +72,11 @@ const styles = Styles.styleSheetCreate(
     } as const)
 )
 
-const HoverBox = Styles.isMobile
-  ? Kb.Box2
-  : Styles.styled(Kb.Box2)(() => ({
-      ':hover': {backgroundColor: Styles.globalColors.blueGreyDark},
-    }))
-
 const WalletRow = (props: Props) => {
   return (
     <Kb.ClickableBox onClick={props.onSelect}>
-      <HoverBox
+      <Kb.Box2
+        className="hover_background_color_blueGreyDark"
         style={Styles.collapseStyles([
           styles.containerBox,
           props.isSelected ? {backgroundColor: Styles.globalColors.purpleLight} : {},
@@ -109,7 +103,7 @@ const WalletRow = (props: Props) => {
           </Kb.Text>
         </Kb.Box2>
         {!!props.unreadPayments && <UnreadIcon unreadPayments={props.unreadPayments} />}
-      </HoverBox>
+      </Kb.Box2>
       <Kb.Divider />
     </Kb.ClickableBox>
   )

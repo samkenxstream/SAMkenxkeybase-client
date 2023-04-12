@@ -6,14 +6,14 @@ import * as Types from '../types/chat2'
 import * as TeamConstants from '../teams'
 import * as Message from './message'
 import {memoize} from '../../util/memoize'
-import {ConversationMeta, PinnedMessageInfo} from '../types/chat2/meta'
-import {TypedState} from '../reducer'
+import type {ConversationMeta, PinnedMessageInfo} from '../types/chat2/meta'
+import type {TypedState} from '../reducer'
 import {formatTimeForConversationList} from '../../util/timestamp'
 import {globalColors} from '../../styles'
 import {isMobile, isPhone} from '../platform'
 import {toByteArray} from 'base64-js'
 import {noConversationIDKey, isValidConversationIDKey} from '../types/chat2/common'
-import {AllowedColors} from '../../common-adapters/text'
+import type {AllowedColors} from '../../common-adapters/text'
 import shallowEqual from 'shallowequal'
 import {getParticipantInfo} from '.'
 
@@ -89,8 +89,8 @@ export const unverifiedInboxUIItemToConversationMeta = (
     readMsgID: i.readMsgID,
     resetParticipants,
     retentionPolicy,
-    snippet: i.localMetadata ? i.localMetadata.snippet : '',
-    snippetDecorated: '',
+    snippet: i.localMetadata ? i.localMetadata.snippet : undefined,
+    snippetDecorated: undefined,
     snippetDecoration: i.localMetadata
       ? i.localMetadata.snippetDecoration
       : RPCChatTypes.SnippetDecoration.none,
@@ -133,6 +133,23 @@ export const getEffectiveRetentionPolicy = (meta: Types.ConversationMeta) => {
   return meta.retentionPolicy.type === 'inherit' ? meta.teamRetentionPolicy : meta.retentionPolicy
 }
 
+const copyOverOldValuesIfEqual = (oldMeta: Types.ConversationMeta, newMeta: Types.ConversationMeta) => {
+  const merged = {...newMeta}
+  if (shallowEqual([...merged.rekeyers], [...oldMeta.rekeyers])) {
+    merged.rekeyers = oldMeta.rekeyers
+  }
+  if (shallowEqual([...merged.resetParticipants], [...oldMeta.resetParticipants])) {
+    merged.resetParticipants = oldMeta.resetParticipants
+  }
+  if (shallowEqual(merged.retentionPolicy, oldMeta.retentionPolicy)) {
+    merged.retentionPolicy = oldMeta.retentionPolicy
+  }
+  if (shallowEqual(merged.teamRetentionPolicy, oldMeta.teamRetentionPolicy)) {
+    merged.teamRetentionPolicy = oldMeta.teamRetentionPolicy
+  }
+  return merged
+}
+
 // Upgrade a meta, try and keep existing values if possible to reduce render thrashing in components
 // Enforce the verions only increase and we only go from untrusted to trusted, etc
 export const updateMeta = (
@@ -149,25 +166,12 @@ export const updateMeta = (
       (newMeta.trustedState === 'trusted' && oldMeta.trustedState !== 'trusted') ||
       newMeta.inboxLocalVersion > oldMeta.inboxLocalVersion
     ) {
-      const merged = {...newMeta}
-      if (shallowEqual([...merged.rekeyers], [...oldMeta.rekeyers])) {
-        merged.rekeyers = oldMeta.rekeyers
-      }
-      if (shallowEqual([...merged.resetParticipants], [...oldMeta.resetParticipants])) {
-        merged.resetParticipants = oldMeta.resetParticipants
-      }
-      if (shallowEqual(merged.retentionPolicy, oldMeta.retentionPolicy)) {
-        merged.retentionPolicy = oldMeta.retentionPolicy
-      }
-      if (shallowEqual(merged.teamRetentionPolicy, oldMeta.teamRetentionPolicy)) {
-        merged.teamRetentionPolicy = oldMeta.teamRetentionPolicy
-      }
-      return merged
+      return copyOverOldValuesIfEqual(oldMeta, newMeta)
     }
     return oldMeta
   }
   // higher inbox version, use new
-  return newMeta
+  return copyOverOldValuesIfEqual(oldMeta, newMeta)
 }
 
 type NotificationSettingsParsed = {
@@ -246,7 +250,7 @@ const UIItemToRetentionPolicies = (
 }
 
 export const inboxUIItemToConversationMeta = (
-  state: TypedState,
+  state: TypedState | undefined,
   i: RPCChatTypes.InboxUIItem
 ): ConversationMeta | null => {
   // Private chats only
@@ -288,7 +292,7 @@ export const inboxUIItemToConversationMeta = (
     i.convSettings && i.convSettings.minWriterRoleInfo ? i.convSettings.minWriterRoleInfo.cannotWrite : false
   const conversationIDKey = Types.stringToConversationIDKey(i.convID)
   let pinnedMsg: PinnedMessageInfo | undefined
-  if (i.pinnedMsg) {
+  if (i.pinnedMsg && state) {
     const {getLastOrdinal, username, devicename} = Message.getMessageStateExtras(state, conversationIDKey)
     const message = Message.uiMessageToMessage(
       conversationIDKey,
@@ -456,11 +460,9 @@ export const getRowStyles = (isSelected: boolean, hasUnread: boolean) => {
     ? globalColors.black
     : globalColors.black_50
   const usernameColor = isSelected ? globalColors.white : globalColors.black
-  const iconHoverColor = isSelected ? globalColors.white_75 : globalColors.black
 
   return {
     backgroundColor,
-    iconHoverColor,
     showBold,
     subColor,
     usernameColor,
@@ -512,9 +514,6 @@ export const getConversationRetentionPolicy = (
   const conv = getMeta(state, conversationIDKey)
   return conv.retentionPolicy
 }
-
-export const isDecryptingSnippet = (trustedState: Types.MetaTrustedState) =>
-  trustedState === 'requesting' || trustedState === 'untrusted'
 
 export const getTeams = (metaMap: Types.MetaMap) =>
   [...metaMap.values()].reduce<Array<string>>((l, meta) => {

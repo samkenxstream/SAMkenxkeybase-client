@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as Shared from './icon.shared'
 import * as Styles from '../styles'
 import logger from '../logger'
-import {IconType, Props, SizeType} from './icon'
+import type {IconType, Props, SizeType} from './icon'
 import {NativeImage, NativeText, NativeTouchableOpacity} from './native-wrappers.native'
 import {iconMeta} from './icon.constants-gen'
 
@@ -25,7 +25,7 @@ type TextProps = {
   type: IconType
 }
 type Writeable<T> = {-readonly [P in keyof T]: T[P]}
-const Text = React.forwardRef<NativeText, TextProps>((p, ref) => {
+const Text = React.forwardRef<NativeText, TextProps>(function Text(p, ref) {
   const style: Writeable<Styles.StylesCrossPlatform> = {}
 
   // we really should disallow reaching into style like this but this is what the old code does.
@@ -123,6 +123,8 @@ const Icon = React.memo<Props>(
     const hasContainer = p.onClick && p.style
     const iconType = Shared.typeToIconMapper(p.type)
 
+    const isDarkMode = React.useContext(Styles.DarkModeContext)
+
     if (!iconType) {
       logger.warn('Null iconType passed')
       return null
@@ -160,7 +162,7 @@ const Icon = React.memo<Props>(
     } else {
       icon = (
         <Image
-          source={(Styles.isDarkMode() && iconMeta[iconType].requireDark) || iconMeta[iconType].require}
+          source={(isDarkMode && iconMeta[iconType].requireDark) || iconMeta[iconType].require}
           style={hasContainer ? null : p.style}
           ref={wrap ? undefined : ref}
         />

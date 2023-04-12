@@ -6,6 +6,8 @@ import {isDarkMode} from './dark-mode'
 import {themed, colors, darkColors} from './colors'
 import {getAssetPath} from '../constants/platform.desktop'
 import * as Path from '../util/path'
+import isArray from 'lodash/isArray'
+import shallowEqual from 'shallowequal'
 
 type _Elem = Object | null | false | void
 // CollapsibleStyle is a generic version of ?StylesMobile and family,
@@ -154,27 +156,33 @@ export const initDesktopStyles = () => {
   }
   const style = document.createElement('style')
   style.type = 'text/css'
-  const css = Object.keys(colors).reduce((s, name) => {
-    const color = colors[name]
-    const darkColor = darkColors[name]
-    if (color) {
-      return (
-        s +
-        `.color_${name} {color: ${color};}\n` +
-        `.darkMode .color_${name} {color: ${darkColor};}\n` +
-        `.hover_color_${name}:hover {color: ${color};}\n` +
-        `.darkMode .hover_color_${name}:hover {color: ${darkColor};}\n` +
-        `.hover_container:hover .hover_contained_color_${name} {color: ${color} !important;}\n` +
-        `.darkMode .hover_container:hover .hover_contained_color_${name} {color: ${darkColor} !important;}\n` +
-        `.background_color_${name} {background-color: ${color};}\n` +
-        `.darkMode .background_color_${name} {background-color: ${darkColor};}\n` +
-        `.hover_background_color_${name}:hover {background-color: ${color};}\n` +
-        `.darkMode .hover_background_color_${name}:hover {background-color: ${darkColor};}\n`
-      )
-    } else {
-      return s
-    }
+  const colorNames = Object.keys(colors) as Array<keyof typeof colors>
+  const colorVars = `
+        :root { ${colorNames
+          .reduce((s, name) => {
+            s.push(`--color-${name}: ${colors[name] ?? ''};`)
+            return s
+          }, new Array<string>())
+          .join(' ')} }
+        .darkMode { ${colorNames
+          .reduce((s, name) => {
+            s.push(`--color-${name}: ${darkColors[name] ?? ''};`)
+            return s
+          }, new Array<string>())
+          .join(' ')} }
+`
+  const helpers = colorNames.reduce((s, name) => {
+    return (
+      s +
+      `.color_${name} {color: var(--color-${name});}\n` +
+      `.color_${name}_important {color: var(--color-${name}) !important;}\n` +
+      `.hover_color_${name}:hover {color: var(--color-${name});}\n` +
+      `.hover_container:hover .hover_contained_color_${name} {color: var(--color-${name}) !important;}\n` +
+      `.background_color_${name} {background-color: var(--color-${name});}\n` +
+      `.hover_background_color_${name}:hover {background-color: var(--color-${name});}\n`
+    )
   }, '')
+  const css = colorVars + helpers
   style.appendChild(document.createTextNode(css))
   head.appendChild(style)
   fixScrollbars()
@@ -182,6 +190,47 @@ export const initDesktopStyles = () => {
 
 export const hairlineWidth = 1
 export const styleSheetCreate = (obj: any) => styleSheetCreateProxy(obj, o => o)
+
+export const useCollapseStyles = (
+  styles: CSS.StylesCrossPlatform,
+  memo: boolean = false
+): undefined | CSS._StylesCrossPlatform => {
+  const old = React.useRef<undefined | CSS._StylesCrossPlatform>(undefined)
+
+  if (!isArray(styles)) {
+    const ret = styles || undefined
+    if (memo) {
+      if (shallowEqual(old.current, ret)) return old.current
+      old.current = ret
+    }
+    return ret
+  }
+
+  // fast path for a single style that passes. Often we do stuff like
+  // collapseStyle([styles.myStyle, this.props.something && {backgroundColor: 'red'}]), so in the false
+  // case we can just take styles.myStyle and not render thrash
+  const nonNull = styles.filter(s => {
+    return !!s && Object.keys(s).length
+  })
+  if (nonNull.length === 0) {
+    old.current = undefined
+    return undefined
+  }
+  if (nonNull.length === 1) {
+    const ret = nonNull[0] || undefined
+    if (memo) {
+      if (shallowEqual(old.current, ret)) return old.current
+      old.current = ret
+    }
+    return ret
+  }
+
+  const collapsed = Object.assign({}, ...nonNull) as CSS._StylesCrossPlatform
+  const ret = Object.keys(collapsed).length ? collapsed : undefined
+  if (shallowEqual(old.current, ret)) return old.current
+  old.current = ret
+  return ret
+}
 export const collapseStyles = (styles: ReadonlyArray<CollapsibleStyle>): Object | undefined => {
   // fast path for a single style that passes. Often we do stuff like
   // collapseStyle([styles.myStyle, this.props.something && {backgroundColor: 'red'}]), so in the false
@@ -220,10 +269,6 @@ export {
   padding,
 } from './shared'
 
-// @ts-ignore
-export {keyframes as styledKeyframes} from '@emotion/react'
-// @ts-ignore
-export {default as styled} from '@emotion/styled'
 export {themed as globalColors} from './colors'
 export const statusBarHeight = 0
 export const borderRadius = 4
@@ -231,7 +276,9 @@ export {default as classNames} from 'classnames'
 export type StylesCrossPlatform = CSS.StylesCrossPlatform
 export const dimensionWidth = 0
 export const dimensionHeight = 0
-export {isDarkMode} from './dark-mode'
+export {isDarkMode, DarkModeContext} from './dark-mode'
 export const headerExtraHeight = 0
-export const StyleContext = React.createContext({canFixOverdraw: false})
+export const CanFixOverdrawContext = React.createContext(false)
+export const dontFixOverdraw = {canFixOverdraw: false}
+export const yesFixOverdraw = {canFixOverdraw: true}
 export const undynamicColor = (col: any) => col

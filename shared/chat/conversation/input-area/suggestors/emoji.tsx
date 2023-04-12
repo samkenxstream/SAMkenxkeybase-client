@@ -7,8 +7,14 @@ import * as React from 'react'
 import * as Styles from '../../../../styles'
 import * as Waiting from '../../../../constants/waiting'
 import type * as Types from '../../../../constants/types/chat2'
-import {emojiDataToRenderableEmoji, renderEmoji, type EmojiData, RPCToEmojiData} from '../../../../util/emoji'
-import {emojiIndex, emojiNameMap} from '../../messages/react-button/emoji-picker/data'
+import {
+  emojiSearch,
+  emojiDataToRenderableEmoji,
+  renderEmoji,
+  type EmojiData,
+  RPCToEmojiData,
+} from '../../../../util/emoji'
+import shallowEqual from 'shallowequal'
 
 export const transformer = (
   emoji: EmojiData,
@@ -19,7 +25,7 @@ export const transformer = (
   return Common.standardTransformer(`${marker}${emoji.short_name}:`, tData, preview)
 }
 
-const keyExtractor = (item: EmojiData) => item.short_name
+const keyExtractor = (_item: EmojiData, idx: number) => String(idx) // emojis can have conflicts on the names
 
 const ItemRenderer = (p: Common.ItemRendererProps<EmojiData>) => {
   const {item, selected} = p
@@ -41,6 +47,7 @@ const ItemRenderer = (p: Common.ItemRendererProps<EmojiData>) => {
 
 // 2+ valid emoji chars and no ending colon
 const emojiPrepass = /[a-z0-9_]{2,}(?!.*:)/i
+const empty = []
 
 export const useDataSource = (conversationIDKey: Types.ConversationIDKey, filter: string) => {
   const dispatch = Container.useDispatch()
@@ -48,23 +55,21 @@ export const useDataSource = (conversationIDKey: Types.ConversationIDKey, filter
     dispatch(Chat2Gen.createFetchUserEmoji({conversationIDKey}))
   }, [dispatch, conversationIDKey])
 
-  const userEmojis = Container.useSelector(state => state.chat2.userEmojisForAutocomplete)
-  const userEmojisLoading = Container.useSelector(state =>
-    Waiting.anyWaiting(state, Constants.waitingKeyLoadingEmoji)
-  )
+  const {userEmojis, userEmojisLoading} = Container.useSelector(state => {
+    const userEmojis = state.chat2.userEmojisForAutocomplete
+    const userEmojisLoading = Waiting.anyWaiting(state, Constants.waitingKeyLoadingEmoji)
+    return {userEmojis, userEmojisLoading}
+  }, shallowEqual)
 
   if (!emojiPrepass.test(filter)) {
     return {
-      items: [],
+      items: empty,
       loading: false,
     }
   }
 
   // prefill data with stock emoji
-  let emojiData: Array<EmojiData> = []
-  emojiIndex.search(filter)?.forEach((res: {id?: string}) => {
-    res.id && emojiData.push(emojiNameMap[res.id])
-  })
+  let emojiData: Array<EmojiData> = emojiSearch(filter, 50)
 
   if (userEmojis) {
     const userEmoji = userEmojis

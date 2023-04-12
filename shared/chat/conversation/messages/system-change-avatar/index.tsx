@@ -1,15 +1,15 @@
-import * as React from 'react'
 import * as Kb from '../../../../common-adapters'
 import * as Styles from '../../../../styles'
 import * as Container from '../../../../util/container'
-import * as Types from '../../../../constants/types/chat2'
+import type * as Types from '../../../../constants/types/chat2'
 import UserNotice from '../user-notice'
 
 type Props = {
   message: Types.MessageSystemChangeAvatar
 }
+const getUsername = (state: Container.TypedState) => state.config.username
 const SystemChangeAvatar = (props: Props) => {
-  const you = Container.useSelector(state => state.config.username)
+  const you = Container.useSelector(getUsername)
   return (
     <UserNotice>
       <Kb.Text type="BodySmall" style={styles.text}>

@@ -2,13 +2,11 @@ import logger from '../../logger'
 import * as React from 'react'
 import * as Kb from '../../common-adapters'
 import Feedback from '.'
-import logSend from '../../native/log-send'
 import * as Container from '../../util/container'
 import {isAndroid, version, pprofDir} from '../../constants/platform'
-import {writeLogLinesToFile} from '../../util/forward-logs'
 import {Platform} from 'react-native'
-import {NativeModules} from '../../util/native-modules.native'
 import {getExtraChatLogsForLogSend, getPushTokenForLogSend} from '../../constants/settings'
+import {logSend, appVersionName, appVersionCode} from 'react-native-kb'
 
 type OwnProps = Container.RouteProps<'settingsTabs.feedbackTab'>
 
@@ -24,8 +22,6 @@ export type Props = {
   status: Object
 }
 
-const appVersionName = NativeModules.KeybaseEngine.appVersionName
-const appVersionCode = NativeModules.KeybaseEngine.appVersionCode
 const mobileOsVersion = Platform.Version
 
 class FeedbackContainer extends React.Component<Props, State> {
@@ -42,7 +38,6 @@ class FeedbackContainer extends React.Component<Props, State> {
     sendError: undefined,
     sending: false,
   }
-  private dumpLogs = async () => logger.dump().then(writeLogLinesToFile)
 
   componentWillUnmount() {
     this.mounted = false
@@ -59,41 +54,37 @@ class FeedbackContainer extends React.Component<Props, State> {
     this.setState({sending: true})
 
     this.timeoutID = setTimeout(() => {
-      const maybeDump = sendLogs ? this.dumpLogs() : Promise.resolve()
-
-      maybeDump
-        .then(async () => {
-          logger.info(`Sending ${sendLogs ? 'log' : 'feedback'} to daemon`)
-          const extra = sendLogs
-            ? {...this.props.status, ...this.props.chat, ...this.props.push}
-            : this.props.status
-          const traceDir = pprofDir
-          const cpuProfileDir = traceDir
-          return logSend(
-            JSON.stringify(extra),
-            feedback || '',
-            sendLogs,
-            sendMaxBytes,
-            traceDir,
-            cpuProfileDir
-          )
-        })
-        .then(logSendId => {
-          logger.info('logSendId is', logSendId)
-          if (this.mounted) {
-            this.setState({
-              sendError: undefined,
-              sending: false,
-            })
-          }
-        })
+      const run = async () => {
+        const maybeDump = sendLogs ? logger.dump() : Promise.resolve()
+        await maybeDump
+        logger.info(`Sending ${sendLogs ? 'log' : 'feedback'} to daemon`)
+        const extra = sendLogs
+          ? {...this.props.status, ...this.props.chat, ...this.props.push}
+          : this.props.status
+        const traceDir = pprofDir
+        const cpuProfileDir = traceDir
+        const logSendId = await logSend(
+          JSON.stringify(extra),
+          feedback || '',
+          sendLogs,
+          sendMaxBytes,
+          traceDir,
+          cpuProfileDir
+        )
+        logger.info('logSendId is', logSendId)
+        if (this.mounted) {
+          this.setState({
+            sendError: undefined,
+            sending: false,
+          })
+        }
+      }
+      run()
+        .then(() => {})
         .catch(err => {
           logger.warn('err in sending logs', err)
           if (this.mounted) {
-            this.setState({
-              sendError: err,
-              sending: false,
-            })
+            this.setState({sendError: err, sending: false})
           }
         })
     }, 0)

@@ -1,9 +1,9 @@
 // Metadata about a conversation.
-import * as Common from './common'
-import * as Message from './message'
-import * as RPCChatTypes from '../rpc-chat-gen'
-import * as TeamTypes from '../teams'
-import {RetentionPolicy} from '../retention-policy'
+import type * as Common from './common'
+import type * as Message from './message'
+import type * as RPCChatTypes from '../rpc-chat-gen'
+import type * as TeamTypes from '../teams'
+import type {RetentionPolicy} from '../retention-policy'
 
 export type MembershipType = 'active' | 'youArePreviewing' | 'youAreReset' | 'notMember'
 export type TeamType = 'small' | 'big' | 'adhoc'
@@ -43,8 +43,8 @@ export type ConversationMeta = {
   rekeyers: Set<string>
   resetParticipants: Set<string>
   retentionPolicy: RetentionPolicy
-  snippet: string
-  snippetDecorated: string
+  snippet?: string
+  snippetDecorated?: string
   snippetDecoration: RPCChatTypes.SnippetDecoration
   status: RPCChatTypes.ConversationStatus
   supersededBy: Common.ConversationIDKey

@@ -21,12 +21,6 @@ type State = {
   showTyping: boolean
 }
 
-const HoverBox = Styles.isMobile
-  ? Kb.ClickableBox
-  : Styles.styled(Kb.ClickableBox)(() => ({
-      ':hover .text': {textDecoration: 'underline'},
-    }))
-
 class LogOut extends React.Component<Props, State> {
   state = {
     loggingOut: false,
@@ -64,14 +58,16 @@ class LogOut extends React.Component<Props, State> {
     ) : (
       <Kb.Modal
         backgroundStyle={styles.logoutBackground}
-        banners={[
-          this.props.checkPasswordIsCorrect === false && (
-            <Kb.Banner color="red">Wrong password. Please try again.</Kb.Banner>
-          ),
-          this.props.checkPasswordIsCorrect === true && (
-            <Kb.Banner color="green">Your password is correct.</Kb.Banner>
-          ),
-        ]}
+        banners={
+          <>
+            {this.props.checkPasswordIsCorrect === false ? (
+              <Kb.Banner color="red">Wrong password. Please try again.</Kb.Banner>
+            ) : null}
+            {this.props.checkPasswordIsCorrect === true ? (
+              <Kb.Banner color="green">Your password is correct.</Kb.Banner>
+            ) : null}
+          </>
+        }
         footer={{
           content: !this.props.checkPasswordIsCorrect ? (
             <Kb.ButtonBar align="center" direction="column" fullWidth={true} style={styles.buttonBar}>
@@ -90,12 +86,16 @@ class LogOut extends React.Component<Props, State> {
                 {this.state.loggingOut ? (
                   <Kb.ProgressIndicator style={styles.smallProgress} type="Small" />
                 ) : (
-                  <HoverBox onClick={this.logOut} style={styles.logoutContainer}>
+                  <Kb.ClickableBox
+                    onClick={this.logOut}
+                    style={styles.logoutContainer}
+                    className="hover-underline-container"
+                  >
                     <Kb.Icon type="iconfont-leave" />
-                    <Kb.Text className="text" style={styles.logout} type="BodySmallSecondaryLink">
+                    <Kb.Text className="underline" style={styles.logout} type="BodySmallSecondaryLink">
                       Just sign out
                     </Kb.Text>
-                  </HoverBox>
+                  </Kb.ClickableBox>
                 )}
               </Kb.Box2>
             </Kb.ButtonBar>

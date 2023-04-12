@@ -22,11 +22,11 @@ import type ChatPaymentsConfirm from './payments/confirm/container'
 import type ChatRoot from './inbox/container'
 import type ChatSearchBot from './conversation/bot/search'
 import type ChatShowNewTeamDialog from './new-team-dialog-container'
-import type ChatUnfurlMapPopup from './conversation/messages/wrapper/unfurl/map/popup'
+import type ChatUnfurlMapPopup from './conversation/messages/text/unfurl/unfurl-list/map-popup'
 import type PunycodeLinkWarning from './punycode-link-warning'
 import type SendToChat from './send-to-chat'
 import type {RenderableEmoji} from '../util/emoji'
-import type {Routable as ChatChooseEmoji} from './conversation/messages/react-button/emoji-picker/container'
+import type {Routable as ChatChooseEmoji} from './emoji-picker/container'
 import type {BlockModalContext} from './blocking/block-modal'
 
 export const newRoutes = {
@@ -63,8 +63,7 @@ export const newModalRoutes = {
     getScreen: (): typeof BlockModal => require('./blocking/block-modal/container').default,
   },
   chatChooseEmoji: {
-    getScreen: (): typeof ChatChooseEmoji =>
-      require('./conversation/messages/react-button/emoji-picker/container').Routable,
+    getScreen: (): typeof ChatChooseEmoji => require('./emoji-picker/container').Routable,
   },
   chatConfirmNavigateExternal: {
     getScreen: (): typeof PunycodeLinkWarning => require('./punycode-link-warning').default,
@@ -108,7 +107,7 @@ export const newModalRoutes = {
   },
   chatUnfurlMapPopup: {
     getScreen: (): typeof ChatUnfurlMapPopup =>
-      require('./conversation/messages/wrapper/unfurl/map/popup').default,
+      require('./conversation/messages/text/unfurl/unfurl-list/map-popup').default,
   },
   sendToChat: {
     getScreen: (): typeof SendToChat => require('./send-to-chat').default,

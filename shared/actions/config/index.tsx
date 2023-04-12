@@ -1,21 +1,20 @@
-import logger from '../../logger'
-import {log} from '../../native/log/logui'
 import * as ConfigGen from '../config-gen'
-import * as GregorGen from '../gregor-gen'
-import * as SettingsGen from '../settings-gen'
-import * as EngineGen from '../engine-gen-gen'
-import * as DevicesGen from '../devices-gen'
-import * as PushGen from '../push-gen'
-import * as RouteTreeGen from '../route-tree-gen'
-import * as RPCTypes from '../../constants/types/rpc-gen'
-import * as SettingsConstants from '../../constants/settings'
-import * as LoginConstants from '../../constants/login'
-import {initPlatformListener} from '../platform-specific'
-import * as Tabs from '../../constants/tabs'
-import * as Router2 from '../../constants/router2'
-import * as Platform from '../../constants/platform'
-import {noVersion} from '../../constants/whats-new'
 import * as Container from '../../util/container'
+import * as DevicesGen from '../devices-gen'
+import * as EngineGen from '../engine-gen-gen'
+import * as GregorGen from '../gregor-gen'
+import * as LoginConstants from '../../constants/login'
+import * as Platform from '../../constants/platform'
+import * as PushGen from '../push-gen'
+import * as RPCTypes from '../../constants/types/rpc-gen'
+import * as RouteTreeGen from '../route-tree-gen'
+import * as Router2 from '../../constants/router2'
+import * as SettingsConstants from '../../constants/settings'
+import * as SettingsGen from '../settings-gen'
+import * as Tabs from '../../constants/tabs'
+import logger from '../../logger'
+import {initPlatformListener} from '../platform-specific'
+import {noVersion} from '../../constants/whats-new'
 
 const onLoggedIn = (state: Container.TypedState, action: EngineGen.Keybase1NotifySessionLoggedInPayload) => {
   logger.info('keybase.1.NotifySession.loggedIn')
@@ -35,14 +34,10 @@ const onLoggedOut = (state: Container.TypedState) => {
   return undefined
 }
 
-const onLog = (_: unknown, action: EngineGen.Keybase1LogUiLogPayload) => {
-  log(action.payload.params)
-}
-
 const onConnected = () => ConfigGen.createStartHandshake()
 const onDisconnected = () => {
   logger
-    .flush()
+    .dump()
     .then(() => {})
     .catch(() => {})
   return ConfigGen.createDaemonError({daemonError: new Error('Disconnected')})
@@ -323,21 +318,14 @@ const maybeDoneWithLogoutHandshake = async (state: Container.TypedState) => {
   }
 }
 
-const showMonsterPushPrompt = () => [
-  RouteTreeGen.createSwitchLoggedIn({loggedIn: true}),
-  RouteTreeGen.createSwitchTab({tab: Tabs.peopleTab}),
-  RouteTreeGen.createNavigateAppend({
-    path: ['settingsPushPrompt'],
-  }),
-]
-
 // Monster push prompt
 // We've just started up, we don't have the permissions, we're logged in and we
 // haven't just signed up. This handles the scenario where the push notifications
 // permissions checker finishes after the routeToInitialScreen is done.
-const onShowPermissionsPrompt = (
+const onShowPermissionsPrompt = async (
   state: Container.TypedState,
-  action: PushGen.ShowPermissionsPromptPayload
+  action: PushGen.ShowPermissionsPromptPayload,
+  listenerApi: Container.ListenerApi
 ) => {
   if (
     !Platform.isMobile ||
@@ -350,7 +338,10 @@ const onShowPermissionsPrompt = (
   }
 
   logger.info('[ShowMonsterPushPrompt] Entered through the late permissions checker scenario')
-  return showMonsterPushPrompt()
+  listenerApi.dispatch(RouteTreeGen.createSwitchLoggedIn({loggedIn: true}))
+  await Container.timeoutPromise(100)
+  listenerApi.dispatch(RouteTreeGen.createSwitchTab({tab: Tabs.peopleTab}))
+  listenerApi.dispatch(RouteTreeGen.createNavigateAppend({path: ['settingsPushPrompt']}))
 }
 
 const onAndroidShare = (state: Container.TypedState) => {
@@ -648,7 +639,6 @@ const initConfig = () => {
 
   Container.listenAction(EngineGen.keybase1NotifySessionLoggedIn, onLoggedIn)
   Container.listenAction(EngineGen.keybase1NotifySessionLoggedOut, onLoggedOut)
-  Container.listenAction(EngineGen.keybase1LogUiLog, onLog)
   Container.listenAction(EngineGen.connected, onConnected)
   Container.listenAction(EngineGen.disconnected, onDisconnected)
   Container.listenAction(EngineGen.keybase1NotifyTrackingTrackingInfo, onTrackingInfo)

@@ -1,8 +1,9 @@
-import * as React from 'react'
-import * as Types from '../../../../constants/types/chat2'
 import * as Kb from '../../../../common-adapters'
+import * as React from 'react'
 import * as Styles from '../../../../styles'
 import ReactButton from '../react-button/container'
+import type * as Types from '../../../../constants/types/chat2'
+import {ConvoIDContext, OrdinalContext} from '../ids-context'
 
 export type Props = {
   attachmentRef?: () => React.Component<any> | null
@@ -23,9 +24,11 @@ export type Props = {
 }
 
 const ReactionTooltip = (props: Props) => {
+  const insets = Kb.useSafeAreaInsets()
   if (!props.visible) {
     return null
   }
+
   const sections = props.reactions.map(r => ({
     conversationIDKey: props.conversationIDKey,
     data: r.users.map(u => ({...u, key: `${u.username}:${r.emoji}`})),
@@ -42,43 +45,53 @@ const ReactionTooltip = (props: Props) => {
       propagateOutsideClicks={true}
       style={styles.overlay}
     >
-      <Kb.Box2
-        onMouseLeave={props.onMouseLeave}
-        onMouseOver={props.onMouseOver}
-        direction="vertical"
-        gap="tiny"
-        style={styles.listContainer}
-      >
-        {Styles.isMobile && (
-          <Kb.Box2 direction="horizontal">
-            <Kb.Text type="BodySemiboldLink" onClick={props.onHidden} style={styles.closeButton}>
-              Close
-            </Kb.Text>
-            <Kb.Box2 direction="horizontal" style={{flex: 1}} />
+      {/* need context since this uses a portal... */}
+      <ConvoIDContext.Provider value={props.conversationIDKey}>
+        <OrdinalContext.Provider value={props.ordinal}>
+          <Kb.Box2
+            onMouseLeave={props.onMouseLeave}
+            onMouseOver={props.onMouseOver}
+            direction="vertical"
+            gap="tiny"
+            style={Styles.collapseStyles([styles.listContainer, {paddingBottom: insets.bottom}])}
+          >
+            {Styles.isMobile && (
+              <Kb.Box2 direction="horizontal">
+                <Kb.Text type="BodySemiboldLink" onClick={props.onHidden} style={styles.closeButton}>
+                  Close
+                </Kb.Text>
+                <Kb.Box2 direction="horizontal" style={{flex: 1}} />
+              </Kb.Box2>
+            )}
+            <Kb.SectionList
+              alwaysBounceVertical={false}
+              initialNumToRender={19} // Keeps height from trashing on mobile
+              sections={sections}
+              stickySectionHeadersEnabled={true}
+              disableAbsoluteStickyHeader={true}
+              contentContainerStyle={styles.list}
+              renderItem={renderItem}
+              renderSectionHeader={renderSectionHeader}
+            />
+            {Styles.isMobile && (
+              <Kb.ButtonBar style={styles.addReactionButtonBar}>
+                <Kb.Button
+                  mode="Secondary"
+                  fullWidth={true}
+                  onClick={props.onAddReaction}
+                  label="Add a reaction"
+                >
+                  <Kb.Icon
+                    type="iconfont-reacji"
+                    color={Styles.globalColors.blue}
+                    style={styles.addReactionButtonIcon}
+                  />
+                </Kb.Button>
+              </Kb.ButtonBar>
+            )}
           </Kb.Box2>
-        )}
-        <Kb.SectionList
-          alwaysBounceVertical={false}
-          initialNumToRender={19} // Keeps height from trashing on mobile
-          sections={sections}
-          stickySectionHeadersEnabled={true}
-          disableAbsoluteStickyHeader={true}
-          contentContainerStyle={styles.list}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-        />
-        {Styles.isMobile && (
-          <Kb.ButtonBar style={styles.addReactionButtonBar}>
-            <Kb.Button mode="Secondary" fullWidth={true} onClick={props.onAddReaction} label="Add a reaction">
-              <Kb.Icon
-                type="iconfont-reacji"
-                color={Styles.globalColors.blue}
-                style={styles.addReactionButtonIcon}
-              />
-            </Kb.Button>
-          </Kb.ButtonBar>
-        )}
-      </Kb.Box2>
+        </OrdinalContext.Provider>
+      </ConvoIDContext.Provider>
     </Kb.Overlay>
   )
 }
@@ -121,11 +134,7 @@ const renderSectionHeader = ({
     fullWidth={true}
     style={styles.buttonContainer}
   >
-    <ReactButton
-      conversationIDKey={section.conversationIDKey}
-      ordinal={section.ordinal}
-      emoji={section.title}
-    />
+    <ReactButton emoji={section.title} />
     <Kb.Text type="Terminal" lineClamp={1} style={styles.emojiText}>
       {section.title}
     </Kb.Text>

@@ -3,7 +3,7 @@ import * as React from 'react'
 import * as Styles from '../styles'
 import useBrowserWindow from '../desktop/remote/use-browser-window.desktop'
 import useSerializeProps from '../desktop/remote/use-serialize-props.desktop'
-import {serialize, ProxyProps} from './remote-serializer.desktop'
+import {serialize, type ProxyProps} from './remote-serializer.desktop'
 
 const windowOpts = {height: 300, width: 500}
 
@@ -24,7 +24,7 @@ const UnlockFolders = (p: ProxyProps) => {
 
 const UnlockFoldersMemo = React.memo(UnlockFolders)
 
-export default () => {
+const UnlockRemoteProxy = () => {
   const unlockFolders = Container.useSelector(s => s.unlockFolders)
   const {popupOpen} = unlockFolders
   if (popupOpen) {
@@ -41,3 +41,4 @@ export default () => {
   }
   return null
 }
+export default UnlockRemoteProxy

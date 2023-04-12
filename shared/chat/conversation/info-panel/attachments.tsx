@@ -10,7 +10,6 @@ import * as Styles from '../../../styles'
 import {formatAudioRecordDuration, formatTimeForMessages} from '../../../util/timestamp'
 import MessagePopup from '../messages/message-popup'
 import chunk from 'lodash/chunk'
-import type {OverlayParentProps} from '../../../common-adapters/overlay/parent-hoc'
 import {infoPanelWidth} from './common'
 import type {Section} from '../../../common-adapters/section-list'
 
@@ -169,13 +168,25 @@ const MediaThumb = (props: MediaThumbProps) => {
   )
 }
 
-type DocViewRowProps = {item: Doc} & OverlayParentProps
+type DocViewRowProps = {item: Doc}
 
-const _DocViewRow = (props: DocViewRowProps) => {
-  const {item, toggleShowingMenu, getAttachmentRef, showingMenu} = props
+const DocViewRow = (props: DocViewRowProps) => {
+  const {item} = props
+  const {toggleShowingPopup, showingPopup, popup} = Kb.usePopup(attachTo =>
+    item.message ? (
+      <MessagePopup
+        attachTo={attachTo}
+        conversationIDKey={item.message.conversationIDKey}
+        ordinal={item.message.id}
+        onHidden={toggleShowingPopup}
+        position="top right"
+        visible={showingPopup}
+      />
+    ) : null
+  )
   return (
     <Kb.Box2 direction="vertical" fullWidth={true}>
-      <Kb.ClickableBox onClick={item.onDownload} onLongPress={toggleShowingMenu}>
+      <Kb.ClickableBox onClick={item.onDownload} onLongPress={toggleShowingPopup}>
         <Kb.Box2 direction="horizontal" fullWidth={true} style={styles.docRowContainer} gap="xtiny">
           <Kb.Icon type="icon-file-32" style={styles.docIcon} />
           <Kb.Box2 direction="vertical" fullWidth={true} style={styles.docRowTitle}>
@@ -200,20 +211,10 @@ const _DocViewRow = (props: DocViewRowProps) => {
           </Kb.Text>
         </Kb.Box2>
       )}
-      {Styles.isMobile && showingMenu && item.message && (
-        <MessagePopup
-          attachTo={getAttachmentRef}
-          message={item.message}
-          onHidden={toggleShowingMenu}
-          position="top right"
-          visible={showingMenu}
-        />
-      )}
+      {Styles.isMobile && showingPopup && item.message && popup}
     </Kb.Box2>
   )
 }
-
-const DocViewRow = Kb.OverlayParentHOC(_DocViewRow)
 
 type SelectorProps = {
   selectedView: RPCChatTypes.GalleryItemTyp
@@ -442,14 +443,24 @@ export const useAttachmentSections = (
   }
 
   const onMediaClick = (message: Types.MessageAttachment) =>
-    dispatch(Chat2Gen.createAttachmentPreviewSelect({message}))
+    dispatch(
+      Chat2Gen.createAttachmentPreviewSelect({
+        conversationIDKey: message.conversationIDKey,
+        ordinal: message.id,
+      })
+    )
 
   const onDocDownload = (message: Types.MessageAttachment) => {
     if (Styles.isMobile) {
       dispatch(Chat2Gen.createMessageAttachmentNativeShare({message}))
     } else {
       if (!message.downloadPath) {
-        dispatch(Chat2Gen.createAttachmentDownload({message}))
+        dispatch(
+          Chat2Gen.createAttachmentDownload({
+            conversationIDKey: message.conversationIDKey,
+            ordinal: message.id,
+          })
+        )
       }
     }
   }

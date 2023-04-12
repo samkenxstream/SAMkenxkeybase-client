@@ -1,23 +1,23 @@
-import * as Constants from '../constants/router2'
-import * as Tabs from '../constants/tabs'
-import * as Shared from './router.shared'
-import * as Styles from '../styles'
-import * as React from 'react'
-import {useMemo} from '../util/memoize'
-import {createLeftTabNavigator} from './left-tab-navigator.desktop'
-import createNoDupeStackNavigator from './stack'
-import {NavigationContainer} from '@react-navigation/native'
-import {modalRoutes, routes, loggedOutRoutes, tabRoots} from './routes'
-import type {RouteMap} from '../util/container'
-import * as Shim from './shim.desktop'
 import * as Common from './common.desktop'
-import {HeaderLeftCancel} from '../common-adapters/header-hoc'
+import * as Constants from '../constants/router2'
+import * as React from 'react'
+import * as Shared from './router.shared'
+import * as Shim from './shim.desktop'
+import * as Styles from '../styles'
+import * as Tabs from '../constants/tabs'
 import Header from './header/index.desktop'
+import type {RouteMap} from '../util/container'
+import {HeaderLeftCancel} from '../common-adapters/header-hoc'
+import {NavigationContainer} from '@react-navigation/native'
+import {createLeftTabNavigator} from './left-tab-navigator.desktop'
+import {createNativeStackNavigator} from '@react-navigation/native-stack'
+import {modalRoutes, routes, loggedOutRoutes, tabRoots} from './routes'
+import {useMemo} from '../util/memoize'
 
 export const headerDefaultStyle = Common.headerDefaultStyle
 const Tab = createLeftTabNavigator()
 
-type DesktopTabs = typeof Tabs.desktopTabs[number]
+type DesktopTabs = (typeof Tabs.desktopTabs)[number]
 
 const tabRootsVals = Object.values(tabRoots).filter(root => root != tabRoots[Tabs.fsTab]) // we allow fs root anywhere
 // we don't want the other roots in other stacks
@@ -34,7 +34,7 @@ const routesMinusRoots = (tab: DesktopTabs) => {
 // we must ensure we don't keep remaking these components
 const tabScreensCache = new Map()
 const makeTabStack = (tab: DesktopTabs) => {
-  const S = createNoDupeStackNavigator()
+  const S = createNativeStackNavigator()
 
   let tabScreens = tabScreensCache.get(tab)
   if (!tabScreens) {
@@ -43,7 +43,7 @@ const makeTabStack = (tab: DesktopTabs) => {
   }
 
   const Comp = React.memo(
-    () => {
+    function TabStackNavigator() {
       return (
         <S.Navigator
           initialRouteName={tabRoots[tab]}
@@ -111,26 +111,31 @@ const AppTabs = React.memo(
   () => true // ignore all props
 )
 
-const LoggedOutStack = createNoDupeStackNavigator()
+const LoggedOutStack = createNativeStackNavigator()
 const LoggedOutScreens = makeNavScreens(Shim.shim(loggedOutRoutes, false, true), LoggedOutStack.Screen, false)
-const LoggedOut = React.memo(() => (
-  <LoggedOutStack.Navigator
-    initialRouteName="login"
-    screenOptions={{
-      header: ({navigation}) => (
-        <Header navigation={navigation} options={{headerBottomStyle: {height: 0}, headerHideBorder: true}} />
-      ),
-    }}
-  >
-    {LoggedOutScreens}
-  </LoggedOutStack.Navigator>
-))
+const LoggedOut = React.memo(function LoggedOut() {
+  return (
+    <LoggedOutStack.Navigator
+      initialRouteName="login"
+      screenOptions={{
+        header: ({navigation}) => (
+          <Header
+            navigation={navigation}
+            options={{headerBottomStyle: {height: 0}, headerHideBorder: true}}
+          />
+        ),
+      }}
+    >
+      {LoggedOutScreens}
+    </LoggedOutStack.Navigator>
+  )
+})
 
-const RootStack = createNoDupeStackNavigator()
+const RootStack = createNativeStackNavigator()
 const ModalScreens = makeNavScreens(Shim.shim(modalRoutes, true, false), RootStack.Screen, true)
 const documentTitle = {
   formatter: () => {
-    const tabLabel = Tabs.desktopTabMeta[Constants.getCurrentTab() ?? '']?.label ?? ''
+    const tabLabel = Tabs.desktopTabMeta[Constants.getTab(null) ?? '']?.label ?? ''
     return `Keybase: ${tabLabel}`
   },
 }
@@ -150,7 +155,6 @@ const ElectronApp = () => {
       <RootStack.Navigator
         key="root"
         screenOptions={{
-          animationEnabled: false,
           headerLeft: () => <HeaderLeftCancel />,
           headerShown: false, // eventually do this after we pull apart modal2 etc
           presentation: 'transparentModal',

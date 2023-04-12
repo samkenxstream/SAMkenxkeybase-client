@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"log"
 	"os"
 	"sort"
@@ -37,7 +36,7 @@ func UnifiedToChar(unified string) (string, error) {
 }
 
 func createEmojiDataCodeMap(path string) (map[string]string, map[string][]string, error) {
-	emojiFile, err := ioutil.ReadFile(path)
+	emojiFile, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,7 +133,7 @@ func createCodeMapSource(pkgName string, emojiCodeMap map[string]string, emojiRe
 func main() {
 	flag.StringVar(&pkgName, "pkg", "storage", "output package")
 	flag.StringVar(&outName, "o", "../storage/emoji_codemap.go", "output file")
-	flag.StringVar(&inName, "i", "../../../shared/node_modules/emoji-datasource/emoji.json", "input file")
+	flag.StringVar(&inName, "i", "../../../shared/node_modules/emoji-datasource-apple/emoji.json", "input file")
 	flag.Parse()
 	codeMap, revCodeMap, err := createEmojiDataCodeMap(inName)
 	if err != nil {

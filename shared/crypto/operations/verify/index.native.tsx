@@ -16,11 +16,11 @@ export const VerifyInput = () => {
     }
   }, [dispatch])
   return (
-    <>
+    <Kb.KeyboardAvoidingView2>
       <OperationBanner operation={operation} />
       <Input operation={operation} />
       <InputActionsBar operation={operation} />
-    </>
+    </Kb.KeyboardAvoidingView2>
   )
 }
 export const VerifyOutput = () => (
@@ -31,15 +31,5 @@ export const VerifyOutput = () => (
     <OutputActionsBar operation={operation} />
   </>
 )
-
-VerifyInput.navigationOptions = {
-  headerShown: true,
-  title: 'Verify',
-}
-VerifyOutput.navigationOptions = {
-  headerLeft: p => <Kb.HeaderLeftCancel {...p} />,
-  headerShown: true,
-  title: 'Verify',
-}
 
 export default VerifyInput

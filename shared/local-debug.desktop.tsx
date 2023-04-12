@@ -5,6 +5,7 @@ let config = {
   // Set this to true if you want to turn off most console logging so you can profile easier
   PERF: false,
   allowMultipleInstances: false, // let more run
+  debugFullLogs: false, // only for getting full action logs in debug mode
   enableActionLogging: true, // Log actions to the log
   enableStoreLogging: false, // Log full store changes
   featureFlagsOverride: '', // Override feature flags
@@ -23,13 +24,14 @@ let config = {
   printRPCWaitingSession: false, // session / waiting info
   showDevTools: false,
   skipAppFocusActions: false, // dont emit actions when going foreground/background, helpful while working on other actions stuff
+  skipExtensions: true, // if true dont load devtools extensions
   skipSecondaryDevtools: true,
   userTimings: false, // Add user timings api to timeline in chrome
-  virtualListMarks: false, // If true add constraints to items in virtual lists so we can tell when measuring is incorrect
 }
 
 // Developer settings
 if (__DEV__) {
+  config.debugFullLogs = false
   config.enableActionLogging = false
   config.enableStoreLogging = true
   config.filterActionLogs = null // '^chat|entity'
@@ -39,6 +41,7 @@ if (__DEV__) {
   config.printRPCStats = true
   config.printRPCWaitingSession = false
   config.showDevTools = true
+  config.skipExtensions = false
   config.skipSecondaryDevtools = true
   config.userTimings = true
 }
@@ -48,18 +51,17 @@ config = {
   ...KB2.constants.configOverload,
 }
 
+// If debugFullLogs
+if (config.debugFullLogs) {
+  console.warn('\n\n\nlocal debug config.debugFullLogs is ONNNNNn!!!!!1!!!11!!!!\n')
+  config.printRPC = true
+  config.enableActionLogging = true
+}
 // If performance testing
 if (config.PERF) {
   console.warn('\n\n\nlocal debug config.PERF is ONNNNNn!!!!!1!!!11!!!!\nAll console.logs disabled!\n\n\n')
 
-  // Flow (correctly) doesn't like assigning to console
   const c: any = console
-
-  c._log = console.log
-  c._warn = console.warn
-  c._error = console.error
-  c._info = console.info
-
   c.log = noop
   c.warn = noop
   c.error = noop
@@ -74,31 +76,32 @@ if (config.PERF) {
   config.printOutstandingRPCs = false
   config.printOutstandingTimerListeners = false
   config.printRPC = false
+  config.skipExtensions = true
   config.userTimings = false
-  config.virtualListMarks = false
 }
 
 export const {
-  showDevTools,
   allowMultipleInstances,
-  skipSecondaryDevtools,
+  debugFullLogs,
   enableActionLogging,
   enableStoreLogging,
   featureFlagsOverride,
   filterActionLogs,
   forceImmediateLogging,
   ignoreDisconnectOverlay,
-  isDevApplePushToken,
   immediateStateLogging,
+  isDevApplePushToken,
   isTesting,
   partyMode,
   printOutstandingRPCs,
   printOutstandingTimerListeners,
   printRPC,
   printRPCBytes,
-  printRPCWaitingSession,
   printRPCStats,
+  printRPCWaitingSession,
+  showDevTools,
   skipAppFocusActions,
+  skipExtensions,
+  skipSecondaryDevtools,
   userTimings,
-  virtualListMarks,
 } = config

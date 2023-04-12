@@ -2,7 +2,6 @@ import * as Container from '../../../util/container'
 import * as RouteTreeGen from '../../../actions/route-tree-gen'
 import * as Chat2Gen from '../../../actions/chat2-gen'
 import * as TeamConstants from '../../../constants/teams'
-import * as React from 'react'
 import * as Kb from '../../../common-adapters'
 import * as Constants from '../../../constants/chat2'
 import * as Styles from '../../../styles'
@@ -10,16 +9,28 @@ import InfoPanelMenu from './menu/container'
 import type * as ChatTypes from '../../../constants/types/chat2'
 import * as InfoPanelCommon from './common'
 import AddPeople from './add-people'
+import shallowEqual from 'shallowequal'
+import {ConvoIDContext} from '../messages/ids-context'
 
-type SmallProps = {conversationIDKey: ChatTypes.ConversationIDKey} & Kb.OverlayParentProps
+type SmallProps = {conversationIDKey: ChatTypes.ConversationIDKey}
 
 const gearIconSize = Styles.isMobile ? 24 : 16
 
-const _TeamHeader = (props: SmallProps) => {
-  const {conversationIDKey, toggleShowingMenu, getAttachmentRef, showingMenu, setAttachmentRef} = props
+const TeamHeader = (props: SmallProps) => {
+  const {conversationIDKey} = props
   const dispatch = Container.useDispatch()
-  const meta = Container.useSelector(state => Constants.getMeta(state, conversationIDKey))
-  const {teamname, teamID, channelname, descriptionDecorated: description, membershipType, teamType} = meta
+  const {
+    teamname,
+    teamID,
+    channelname,
+    descriptionDecorated: description,
+    membershipType,
+    teamType,
+  } = Container.useSelector(state => {
+    const meta = Constants.getMeta(state, conversationIDKey)
+    const {teamname, teamID, channelname, descriptionDecorated: description, membershipType, teamType} = meta
+    return {channelname, descriptionDecorated: description, membershipType, teamID, teamType, teamname}
+  }, shallowEqual)
   const yourOperations = Container.useSelector(state =>
     teamname ? TeamConstants.getCanPerformByID(state, teamID) : undefined
   )
@@ -33,18 +44,24 @@ const _TeamHeader = (props: SmallProps) => {
     title += '#' + channelname
   }
   const isGeneralChannel = !!(channelname && channelname === 'general')
+
+  const {toggleShowingPopup, showingPopup, popup, popupAnchor} = Kb.usePopup(attachTo => (
+    <ConvoIDContext.Provider value={conversationIDKey}>
+      <InfoPanelMenu
+        attachTo={attachTo}
+        floatingMenuContainerStyle={styles.floatingMenuContainerStyle}
+        onHidden={toggleShowingPopup}
+        hasHeader={false}
+        isSmallTeam={isSmallTeam}
+        visible={showingPopup}
+      />
+    </ConvoIDContext.Provider>
+  ))
+
   return (
     <Kb.Box2 direction="vertical" fullWidth={true} gap="small">
       <Kb.Box2 direction="horizontal" style={styles.smallContainer} fullWidth={true}>
-        <InfoPanelMenu
-          attachTo={getAttachmentRef}
-          floatingMenuContainerStyle={styles.floatingMenuContainerStyle}
-          onHidden={toggleShowingMenu}
-          hasHeader={false}
-          isSmallTeam={isSmallTeam}
-          conversationIDKey={conversationIDKey}
-          visible={showingMenu}
-        />
+        {popup}
         {isSmallTeam ? (
           <>
             <Kb.ConnectedNameWithIcon
@@ -106,8 +123,8 @@ const _TeamHeader = (props: SmallProps) => {
         )}
         <Kb.Icon
           type="iconfont-gear"
-          onClick={toggleShowingMenu}
-          ref={setAttachmentRef}
+          onClick={toggleShowingPopup}
+          ref={popupAnchor as any}
           style={styles.gear}
           fontSize={gearIconSize}
         />
@@ -138,7 +155,6 @@ const _TeamHeader = (props: SmallProps) => {
     </Kb.Box2>
   )
 }
-const TeamHeader = Kb.OverlayParentHOC(_TeamHeader)
 
 type AdhocHeaderProps = {conversationIDKey: ChatTypes.ConversationIDKey}
 

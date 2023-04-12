@@ -1,9 +1,8 @@
 import * as React from 'react'
 import MessagePopupHeader from '../header'
 import * as Kb from '../../../../../common-adapters'
-import {DeviceType} from '../../../../../constants/types/devices'
-import {Position} from '../../../../../common-adapters/relative-popup-hoc.types'
-import {StylesCrossPlatform} from '../../../../../styles/css'
+import type {DeviceType} from '../../../../../constants/types/devices'
+import type {Position, StylesCrossPlatform} from '../../../../../styles'
 import ReactionItem from '../reactionitem'
 
 type Props = {
@@ -24,6 +23,7 @@ type Props = {
   onInstallBot?: () => void
   onKick: () => void
   onPinMessage?: () => void
+  onMarkAsUnread: () => void
   onReact: (emoji: string) => void
   onReply?: () => void
   onReplyPrivately?: () => void
@@ -91,9 +91,6 @@ const TextPopupMenu = (props: Props) => {
     ...(props.onReplyPrivately
       ? [{icon: 'iconfont-reply', onClick: props.onReplyPrivately, title: 'Reply privately'}]
       : []),
-    ...(props.onPinMessage
-      ? [{icon: 'iconfont-pin', onClick: props.onPinMessage, title: 'Pin message'}]
-      : []),
     ...(props.isDeleteable
       ? [
           {
@@ -106,6 +103,10 @@ const TextPopupMenu = (props: Props) => {
           },
         ]
       : []),
+    ...(props.onPinMessage
+      ? [{icon: 'iconfont-pin', onClick: props.onPinMessage, title: 'Pin message'}]
+      : []),
+    ...[{icon: 'iconfont-envelope-solid', onClick: props.onMarkAsUnread, title: 'Mark as unread'}],
     ...(props.onViewProfile || props.isKickable || !props.yourMessage ? ['Divider' as const] : []),
     ...(props.onViewProfile
       ? [{icon: 'iconfont-person', onClick: props.onViewProfile, title: 'View profile'}]
@@ -162,8 +163,11 @@ const TextPopupMenu = (props: Props) => {
       positionFallbacks={[]}
       containerStyle={props.style}
       visible={props.visible}
+      safeProviderStyle={safeProviderStyle}
     />
   )
 }
+
+const safeProviderStyle = {flex: 1} as const
 
 export default TextPopupMenu

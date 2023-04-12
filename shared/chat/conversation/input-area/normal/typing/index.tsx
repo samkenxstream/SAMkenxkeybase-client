@@ -48,7 +48,7 @@ const Names = (props: {names: Set<string>}) => {
   }
 }
 
-const Typing = (props: Props) => {
+const Typing = React.memo(function Typing(props: Props) {
   const {conversationIDKey} = props
   const names = Container.useSelector(state => Constants.getTyping(state, conversationIDKey))
   return (
@@ -65,7 +65,7 @@ const Typing = (props: Props) => {
       )}
     </Kb.Box>
   )
-}
+})
 
 export const mobileTypingContainerHeight = 18
 const styles = Styles.styleSheetCreate(

@@ -6,7 +6,7 @@ import * as RouteTreeGen from '../../../../actions/route-tree-gen'
 import * as TeamsGen from '../../../../actions/teams-gen'
 import {teamsTab} from '../../../../constants/tabs'
 
-const BuildTeam = React.memo((_: {}) => {
+const BuildTeam = React.memo(function BuildTeam() {
   const dispatch = Container.useDispatch()
   const nav = Container.useSafeNavigation()
 
@@ -38,6 +38,7 @@ const styles = Styles.styleSheetCreate(() => ({
       ...Styles.padding(Styles.globalMargins.tiny, Styles.globalMargins.small),
       backgroundColor: Styles.globalColors.fastBlank,
       flexShrink: 0,
+      height: 120,
       width: '100%',
     },
     isTablet: {backgroundColor: Styles.globalColors.transparent},

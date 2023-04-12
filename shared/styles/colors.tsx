@@ -114,7 +114,7 @@ export const colors = {
     return this.brown_75
   },
   brown_75_on_white: 'rgb(117,87,78)',
-  fastBlank: isIOS ? '#FFFFFF' : 'transparent', // on iOS overdraw is eliminated if we use white, on Android it's eliminated if it's transparent /shrug
+  fastBlank: isIOS ? '#FFFFFF' : undefined, // on iOS overdraw is eliminated if we use white, on Android it's eliminated if it's undefined /shrug
   green: '#37BD99',
   greenDark: '#189e7a',
   get greenDarkOrBlack() {
@@ -335,7 +335,7 @@ export const darkColors: {[P in keyof typeof colors]: string | undefined} = {
     return colors.yellow
   },
   brown_75_on_white: 'rgb(117,87,78)',
-  fastBlank: isIOS ? '#191919' : 'transparent', // on iOS overdraw is eliminated if we use solid color, on Android it's eliminated if it's transparent /shrug
+  fastBlank: isIOS ? '#191919' : undefined, // on iOS overdraw is eliminated if we use solid color, on Android it's eliminated if it's transparent /shrug
   green: '#37BD99',
   greenDark: '#189e7a',
   get greenDarkOrBlack() {
@@ -500,19 +500,20 @@ type Names = keyof Color
 
 const names: Array<Names> = Object.keys(colors) as any
 
-let iosDynamicColors: {[P in keyof typeof colors]: typeof colors[P]}
+let iosDynamicColors: {[P in keyof typeof colors]: (typeof colors)[P]}
 if (isIOS) {
   iosDynamicColors = names.reduce<Color>((obj, name) => {
     const {DynamicColorIOS} = require('react-native')
     // @ts-ignore
     obj[name] = DynamicColorIOS({dark: darkColors[name], light: colors[name]})
     return obj
+    // eslint-disable-next-line
   }, {} as Color)
 } else {
   iosDynamicColors = colors
 }
 
-export const themed: {[P in keyof typeof colors]: typeof colors[P]} = names.reduce<Color>((obj, name) => {
+export const themed: {[P in keyof typeof colors]: (typeof colors)[P]} = names.reduce<Color>((obj, name) => {
   if (isIOS) {
     // ios actually handles this nicely natively
     return Object.defineProperty(obj, name, {
@@ -540,6 +541,15 @@ export const themed: {[P in keyof typeof colors]: typeof colors[P]} = names.redu
       },
     })
   }
+  // eslint-disable-next-line
 }, {} as Color)
+
+if (__DEV__) {
+  const t = themed as any
+  t.random = () =>
+    `rgba(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(
+      Math.random() * 256
+    )}, 1)`
+}
 
 export default colors

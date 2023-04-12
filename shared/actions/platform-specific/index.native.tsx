@@ -1,76 +1,65 @@
-import logger from '../../logger'
-import * as RPCTypes from '../../constants/types/rpc-gen'
-import * as RPCChatTypes from '../../constants/types/rpc-chat-gen'
-import * as SettingsConstants from '../../constants/settings'
-import * as PushConstants from '../../constants/push'
-import * as RouterConstants from '../../constants/router2'
-import * as ChatConstants from '../../constants/chat2'
-import * as ConfigGen from '../config-gen'
 import * as Chat2Gen from '../chat2-gen'
-import * as ProfileGen from '../profile-gen'
-import * as SettingsGen from '../settings-gen'
-import * as WaitingGen from '../waiting-gen'
+import * as ConfigGen from '../config-gen'
+import * as Contacts from 'expo-contacts'
+import * as Container from '../../util/container'
 import * as EngineGen from '../engine-gen-gen'
-import * as Tabs from '../../constants/tabs'
-import * as RouteTreeGen from '../route-tree-gen'
+import * as ExpoLocation from 'expo-location'
+import * as ExpoTaskManager from 'expo-task-manager'
 import * as LoginGen from '../login-gen'
-import * as Types from '../../constants/types/chat2'
 import * as MediaLibrary from 'expo-media-library'
-import type * as FsTypes from '../../constants/types/fs'
-import {getEngine} from '../../engine/require'
-// this CANNOT be an import *, totally screws up the packager
-import {Alert, Linking, ActionSheetIOS, PermissionsAndroid, Vibration} from 'react-native'
-import {NativeModules} from '../../util/native-modules.native'
+import * as ProfileGen from '../profile-gen'
+import * as PushConstants from '../../constants/push'
+import * as RPCChatTypes from '../../constants/types/rpc-chat-gen'
+import * as RPCTypes from '../../constants/types/rpc-gen'
+import * as RouteTreeGen from '../route-tree-gen'
+import * as RouterConstants from '../../constants/router2'
+import * as SettingsConstants from '../../constants/settings'
+import * as SettingsGen from '../settings-gen'
+import * as Tabs from '../../constants/tabs'
+import * as Types from '../../constants/types/chat2'
+import * as WaitingGen from '../waiting-gen'
 import Clipboard from '@react-native-clipboard/clipboard'
 import NetInfo from '@react-native-community/netinfo'
+import NotifyPopup from '../../util/notify-popup'
 import PushNotificationIOS from '@react-native-community/push-notification-ios'
+import logger from '../../logger'
+import type * as FsTypes from '../../constants/types/fs'
+import {Alert, Linking, ActionSheetIOS} from 'react-native'
+import {_getNavigator} from '../../constants/router2'
+import {getEngine} from '../../engine/require'
 import {isIOS, isAndroid} from '../../constants/platform'
+import {launchImageLibraryAsync} from '../../util/expo-image-picker.native'
+import {
+  getDefaultCountryCode,
+  androidOpenSettings,
+  androidShare,
+  androidShareText,
+  androidUnlink,
+  fsCacheDir,
+  fsDownloadDir,
+  androidAppColorSchemeChanged,
+} from 'react-native-kb'
 import {
   initPushListener,
   getStartupDetailsFromInitialPush,
   getStartupDetailsFromInitialShare,
 } from './push.native'
-import * as Container from '../../util/container'
-import * as Contacts from 'expo-contacts'
-import {launchImageLibraryAsync} from '../../util/expo-image-picker'
-import * as Haptics from 'expo-haptics'
-import {_getNavigator} from '../../constants/router2'
-import {Audio} from 'expo-av'
-import * as ExpoLocation from 'expo-location'
-import * as FileSystem from 'expo-file-system'
-import * as ExpoTaskManager from 'expo-task-manager'
 
-const requestPermissionsToWrite = async () => {
-  if (isAndroid) {
-    const permissionStatus = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-      {
-        buttonNegative: 'Cancel',
-        buttonNeutral: 'Ask me later',
-        buttonPositive: 'OK',
-        message: 'Keybase needs access to your storage so we can download a file.',
-        title: 'Keybase Storage Permission',
-      }
-    )
-    return permissionStatus !== 'granted'
-      ? Promise.reject(new Error('Unable to acquire storage permissions'))
-      : Promise.resolve()
+const onLog = (_: unknown, action: EngineGen.Keybase1LogUiLogPayload) => {
+  const {params} = action.payload
+  const {level, text} = params
+  logger.info('keybase.1.logUi.log:', params.text.data)
+  if (level >= RPCTypes.LogLevel.error) {
+    NotifyPopup(text.data, {})
   }
-  return Promise.resolve()
 }
 
-export const requestAudioPermission = async () => {
-  let chargeForward = true
-  let {status} = await Audio.getPermissionsAsync()
-  if (status === Audio.PermissionStatus.UNDETERMINED) {
-    const askRes = await Audio.requestPermissionsAsync()
-    status = askRes.status
-    chargeForward = false
+export const requestPermissionsToWrite = async () => {
+  if (isAndroid) {
+    const p = await MediaLibrary.requestPermissionsAsync(false)
+    return p.granted ? Promise.resolve() : Promise.reject('Unable to acquire storage permissions')
   }
-  if (status === Audio.PermissionStatus.DENIED) {
-    throw new Error('Please allow Keybase to access the microphone in the phone settings.')
-  }
-  return chargeForward
+  return Promise.resolve()
 }
 
 export const requestLocationPermission = async (mode: RPCChatTypes.UIWatchPositionPerm) => {
@@ -107,7 +96,10 @@ export async function saveAttachmentToCameraRoll(filePath: string, mimeType: str
   const saveType: 'video' | 'photo' = mimeType.startsWith('video') ? 'video' : 'photo'
   const logPrefix = '[saveAttachmentToCameraRoll] '
   try {
-    await requestPermissionsToWrite()
+    try {
+      // see it we can keep going anyways, android perms are needed sometimes and sometimes not w/ 33
+      await requestPermissionsToWrite()
+    } catch {}
     logger.info(logPrefix + `Attempting to save as ${saveType}`)
     await MediaLibrary.saveToLibraryAsync(fileURL)
     logger.info(logPrefix + 'Success')
@@ -123,7 +115,7 @@ export async function saveAttachmentToCameraRoll(filePath: string, mimeType: str
     throw e
   } finally {
     try {
-      await NativeModules.Utils.androidUnlink?.(filePath)
+      await androidUnlink(filePath)
     } catch (_) {
       logger.warn('failed to unlink')
     }
@@ -154,7 +146,7 @@ export const showShareActionSheet = async (options: {
   } else {
     if (!options.filePath && options.message) {
       try {
-        await NativeModules.AndroidShareFiles?.shareText(options.message, options.mimeType)
+        await androidShareText(options.message, options.mimeType)
         return {completed: true, method: ''}
       } catch (_) {
         return {completed: false, method: ''}
@@ -162,7 +154,7 @@ export const showShareActionSheet = async (options: {
     }
 
     try {
-      await NativeModules.AndroidShareFiles?.share(options.filePath ?? '', options.mimeType)
+      await androidShare(options.filePath ?? '', options.mimeType)
       return {completed: true, method: ''}
     } catch (_) {
       return {completed: false, method: ''}
@@ -172,7 +164,7 @@ export const showShareActionSheet = async (options: {
 
 const openAppSettings = async () => {
   if (isAndroid) {
-    NativeModules.AndroidSettings?.open()
+    androidOpenSettings()
   } else {
     const settingsURL = 'app-settings:'
     const can = await Linking.canOpenURL(settingsURL)
@@ -211,17 +203,17 @@ const updateChangedFocus = (_: unknown, action: ConfigGen.MobileAppStatePayload)
 
 let _lastPersist = ''
 const persistRoute = async (_state: Container.TypedState, action: ConfigGen.PersistRoutePayload) => {
-  const path = action.payload.path
+  const {path} = action.payload
   let param = {}
   let routeName = Tabs.peopleTab
 
   if (path) {
-    const cur = RouterConstants.getCurrentTab()
+    const cur = RouterConstants.getTab(null)
     if (cur) {
       routeName = cur
     }
 
-    const ap = RouterConstants.getAppPath()
+    const ap = RouterConstants.getVisiblePath()
     ap.some(r => {
       if (r.name == 'chatConversation') {
         param = {
@@ -390,10 +382,10 @@ const handleFilePickerError = (_: unknown, action: ConfigGen.FilePickerErrorPayl
 const editAvatar = async () => {
   try {
     const result = await launchImageLibraryAsync('photo')
-    return result.cancelled
+    return result.canceled
       ? null
       : RouteTreeGen.createNavigateAppend({
-          path: [{props: {image: result}, selected: 'profileEditAvatar'}],
+          path: [{props: {image: result?.assets?.[0]}, selected: 'profileEditAvatar'}],
         })
   } catch (error) {
     return ConfigGen.createFilePickerError({error: new Error(error as any)})
@@ -478,7 +470,7 @@ const manageContactsCache = async (
   }
   let defaultCountryCode: string = ''
   try {
-    defaultCountryCode = await NativeModules.Utils.getDefaultCountryCode()
+    defaultCountryCode = await getDefaultCountryCode()
     if (__DEV__ && !defaultCountryCode) {
       // behavior of parsing can be unexpectedly different with no country code.
       // iOS sim + android emu don't supply country codes, so use this one.
@@ -650,176 +642,9 @@ const configureFileAttachmentDownloadForAndroid = async () =>
   RPCChatTypes.localConfigureFileAttachmentDownloadLocalRpcPromise({
     // Android's cache dir is (when I tried) [app]/cache but Go side uses
     // [app]/.cache by default, which can't be used for sharing to other apps.
-    cacheDirOverride: NativeModules.KeybaseEngine.fsCacheDir,
-    downloadDirOverride: NativeModules.KeybaseEngine.fsDownloadDir,
+    cacheDirOverride: fsCacheDir,
+    downloadDirOverride: fsDownloadDir,
   })
-
-const stopAudioRecording = async (
-  state: Container.TypedState,
-  action: Chat2Gen.StopAudioRecordingPayload
-) => {
-  const conversationIDKey = action.payload.conversationIDKey
-  if (state.chat2.audioRecording) {
-    // don't do anything if we are recording and are in locked mode.
-    const audio = state.chat2.audioRecording.get(conversationIDKey)
-    if (audio && ChatConstants.showAudioRecording(audio) && audio.isLocked) {
-      return false
-    }
-  }
-  logger.info('stopAudioRecording: stopping recording')
-  recording?.setOnRecordingStatusUpdate(null)
-  try {
-    await recording?.stopAndUnloadAsync()
-  } catch (e) {
-    console.log('Recoding stopping fail', e)
-  } finally {
-    recording = undefined
-  }
-
-  if (!state.chat2.audioRecording) {
-    return false
-  }
-  const audio = state.chat2.audioRecording.get(conversationIDKey)
-  if (!audio) {
-    logger.info('stopAudioRecording: no audio record, not sending')
-    return false
-  }
-  if (
-    audio.status === Types.AudioRecordingStatus.CANCELLED ||
-    action.payload.stopType === Types.AudioStopType.CANCEL
-  ) {
-    logger.info('stopAudioRecording: recording cancelled, bailing out')
-    try {
-      if (audio.path) {
-        await FileSystem.deleteAsync(audio.path, {idempotent: true})
-      }
-    } catch (e) {
-      console.log('Recording delete failed', e)
-    }
-    return false
-  }
-  if (ChatConstants.audioRecordingDuration(audio) < 500 || audio.path.length === 0) {
-    logger.info('stopAudioRecording: recording too short, skipping')
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-      .then(() => {})
-      .catch(() => {})
-    return Chat2Gen.createStopAudioRecording({conversationIDKey, stopType: Types.AudioStopType.CANCEL})
-  }
-
-  if (audio.status === Types.AudioRecordingStatus.STAGED) {
-    logger.info('stopAudioRecording: in staged mode, not sending')
-    return false
-  }
-
-  return Chat2Gen.createSendAudioRecording({conversationIDKey, fromStaged: false, info: audio})
-}
-
-const onAttemptAudioRecording = async (_: unknown, action: Chat2Gen.AttemptAudioRecordingPayload) => {
-  let chargeForward = true
-  try {
-    chargeForward = await requestAudioPermission()
-  } catch (_error) {
-    const error = _error as any
-    logger.info('failed to get audio perms: ' + error.message)
-    return setPermissionDeniedCommandStatus(
-      action.payload.conversationIDKey,
-      `Failed to access audio. ${error.message}`
-    )
-  }
-  if (!chargeForward) {
-    return false
-  }
-  return Chat2Gen.createEnableAudioRecording({
-    conversationIDKey: action.payload.conversationIDKey,
-    meteringCb: action.payload.meteringCb,
-  })
-}
-
-let recording: Audio.Recording | undefined
-const onEnableAudioRecording = async (
-  state: Container.TypedState,
-  action: Chat2Gen.EnableAudioRecordingPayload
-) => {
-  const conversationIDKey = action.payload.conversationIDKey
-  const audio = state.chat2.audioRecording.get(conversationIDKey)
-  if (!audio || ChatConstants.isCancelledAudioRecording(audio)) {
-    logger.info('enableAudioRecording: no recording info set, bailing')
-    return false
-  }
-
-  if (isIOS) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-      .then(() => {})
-      .catch(() => {})
-  } else {
-    Vibration.vibrate(50)
-  }
-  const outboxID = ChatConstants.generateOutboxID()
-  if (recording) {
-    try {
-      recording?.setOnRecordingStatusUpdate(null)
-    } catch {}
-    try {
-      await recording?.stopAndUnloadAsync()
-    } catch {}
-    recording = undefined
-  }
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: true,
-    interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
-    interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-    playThroughEarpieceAndroid: false,
-    playsInSilentModeIOS: true,
-    shouldDuckAndroid: false,
-    staysActiveInBackground: false,
-  })
-  const r = new Audio.Recording()
-  await r.prepareToRecordAsync({
-    android: {
-      audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_AAC,
-      bitRate: 32000,
-      extension: '.m4a',
-      numberOfChannels: 1,
-      outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_AAC_ADTS,
-      sampleRate: 22050,
-    },
-    ios: {
-      audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_MIN,
-      bitRate: 32000,
-      extension: '.m4a',
-      linearPCMBitDepth: 16,
-      linearPCMIsBigEndian: false,
-      linearPCMIsFloat: false,
-      numberOfChannels: 1,
-      sampleRate: 22050,
-    },
-    isMeteringEnabled: true,
-    web: {},
-  })
-  const audioPath = r.getURI()?.substring('file://'.length)
-  if (!audioPath) {
-    throw new Error("Couldn't start audio recording")
-  }
-  recording = r
-  recording?.setProgressUpdateInterval(100)
-  recording?.setOnRecordingStatusUpdate((status: Audio.RecordingStatus) => {
-    status.metering !== undefined && action.payload.meteringCb(status.metering)
-  })
-  logger.info('onEnableAudioRecording: setting recording info')
-  return Chat2Gen.createSetAudioRecordingPostInfo({conversationIDKey, outboxID, path: audioPath})
-}
-
-const onSendAudioRecording = async (_: unknown, action: Chat2Gen.SendAudioRecordingPayload) => {
-  if (!action.payload.fromStaged) {
-    if (isIOS) {
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      } catch {}
-    } else {
-      Vibration.vibrate(50)
-    }
-  }
-}
 
 const onTabLongPress = (state: Container.TypedState, action: RouteTreeGen.TabLongPressPayload) => {
   if (action.payload.tab !== Tabs.peopleTab) return
@@ -833,18 +658,6 @@ const onTabLongPress = (state: Container.TypedState, action: RouteTreeGen.TabLon
     ]
   }
   return undefined
-}
-
-const onSetAudioRecordingPostInfo = async (
-  state: Container.TypedState,
-  action: Chat2Gen.SetAudioRecordingPostInfoPayload
-) => {
-  const audio = state.chat2.audioRecording.get(action.payload.conversationIDKey)
-  if (!audio || audio.status !== Types.AudioRecordingStatus.RECORDING) {
-    logger.info('onSetAudioRecordingPostInfo: not in recording mode anymore, bailing')
-    return
-  }
-  await recording?.startAsync()
 }
 
 const onPersistRoute = async () => {
@@ -884,7 +697,7 @@ const checkNav = async (
 
 const notifyNativeOfDarkModeChange = (state: Container.TypedState) => {
   if (isAndroid) {
-    NativeModules.KeybaseEngine.androidAppColorSchemeChanged?.(state.config.darkModePreference ?? '')
+    androidAppColorSchemeChanged?.(state.config.darkModePreference ?? '')
   }
 }
 
@@ -928,13 +741,9 @@ export const initPlatformListener = () => {
   Container.listenAction(ConfigGen.daemonHandshake, checkNav)
   Container.listenAction(ConfigGen.setDarkModePreference, notifyNativeOfDarkModeChange)
 
-  // Audio
-  Container.listenAction(Chat2Gen.stopAudioRecording, stopAudioRecording)
-  Container.listenAction(Chat2Gen.attemptAudioRecording, onAttemptAudioRecording)
-  Container.listenAction(Chat2Gen.enableAudioRecording, onEnableAudioRecording)
-  Container.listenAction(Chat2Gen.sendAudioRecording, onSendAudioRecording)
-  Container.listenAction(Chat2Gen.setAudioRecordingPostInfo, onSetAudioRecordingPostInfo)
   Container.listenAction(RouteTreeGen.onNavChanged, onPersistRoute)
+
+  Container.listenAction(EngineGen.keybase1LogUiLog, onLog)
 
   // Start this immediately instead of waiting so we can do more things in parallel
   Container.spawn(loadStartupDetails, 'loadStartupDetails')

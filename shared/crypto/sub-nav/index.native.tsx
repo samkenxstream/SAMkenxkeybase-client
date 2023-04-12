@@ -1,11 +1,10 @@
-import * as React from 'react'
 import * as Kb from '../../common-adapters'
 import * as Styles from '../../styles'
 import * as Constants from '../../constants/crypto'
 import NavRow from './nav-row'
 import {useNavigation} from '@react-navigation/core'
 
-const SubNav = () => {
+const CryptoSubNav = () => {
   const navigator = useNavigation()
   return (
     <Kb.Box2 direction="vertical" fullWidth={true} fullHeight={true} gap="tiny" style={styles.container}>
@@ -16,6 +15,7 @@ const SubNav = () => {
           title={t.title}
           illustration={t.illustration}
           description={t.description}
+          // @ts-ignore
           onClick={() => navigator.navigate(t.tab as any)}
         />
       ))}
@@ -35,8 +35,4 @@ const styles = Styles.styleSheetCreate(
     } as const)
 )
 
-SubNav.navigationOptions = {
-  title: 'Crypto',
-}
-
-export default SubNav
+export default CryptoSubNav

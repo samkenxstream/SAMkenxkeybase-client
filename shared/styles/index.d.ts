@@ -105,12 +105,29 @@ type CollapsibleStyle = CSS.StylesCrossPlatform | RemovedStyle
 // TODO better styles that aren't slow
 export declare function collapseStyles(styles: ReadonlyArray<CollapsibleStyle>): any
 
+// new style, used in the common-adapters, not the components, can memo for you
+export declare function useCollapseStyles<
+  IsMobile = false,
+  Ret = IsMobile extends false ? CSS._StylesCrossPlatform : CSS.StylesCrossPlatform
+>(styles: CSS.StylesCrossPlatform, memo?: boolean): undefined | Ret
+
 export declare const windowStyle: {
   minWidth: number
   minHeight: number
   width: number
   height: number
 }
+
+export type Position =
+  | 'top left'
+  | 'top right'
+  | 'bottom right'
+  | 'bottom left'
+  | 'right center'
+  | 'left center'
+  | 'top center'
+  | 'bottom center'
+  | 'center center'
 
 export declare function padding(
   top: number,
@@ -124,7 +141,6 @@ export declare function padding(
   paddingLeft: number
 }
 
-export declare const styledKeyframes: any
 export declare const isAndroid: boolean
 export declare const isIOS: boolean
 export declare const isMobile: boolean
@@ -148,6 +164,6 @@ export type {
   _StylesMobile,
 } from './css'
 export {default as classNames} from 'classnames'
-export {default as styled} from '@emotion/styled'
-export declare const StyleContext: React.Context<{canFixOverdraw: boolean}>
+export declare const CanFixOverdrawContext: React.Context<boolean>
+export declare const DarkModeContext: React.Context<boolean>
 export declare const undynamicColor: (col: any) => any

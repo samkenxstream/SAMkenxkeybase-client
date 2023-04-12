@@ -22,8 +22,6 @@
 		27EE26A820A140EF00F92CD1 /* Pusher.m in Sources */ = {isa = PBXBuildFile; fileRef = 27EE26A720A140EF00F92CD1 /* Pusher.m */; };
 		27F0BBB52142C19D007195B7 /* Pusher.m in Sources */ = {isa = PBXBuildFile; fileRef = 27EE26A720A140EF00F92CD1 /* Pusher.m */; };
 		338AE322D1D19D1B68AD9975 /* libPods-KeybaseShare.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CB354B49777AEAF1FF91BE3 /* libPods-KeybaseShare.a */; };
-		375CA6651FFD40D300210B11 /* Storybook.m in Sources */ = {isa = PBXBuildFile; fileRef = 375CA6641FFD40D300210B11 /* Storybook.m */; };
-		3791A8A120C71DC0001C2E86 /* PushPrompt.m in Sources */ = {isa = PBXBuildFile; fileRef = 3791A8A020C71DC0001C2E86 /* PushPrompt.m */; };
 		37E0D88822A5C7FB008CA4ED /* keybase-semibold-italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 37E0D87E22A5C7FA008CA4ED /* keybase-semibold-italic.ttf */; };
 		37E0D88922A5C7FB008CA4ED /* keybase-extrabold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 37E0D87F22A5C7FA008CA4ED /* keybase-extrabold.ttf */; };
 		37E0D88A22A5C7FB008CA4ED /* keybase-bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 37E0D88022A5C7FA008CA4ED /* keybase-bold.ttf */; };
@@ -36,27 +34,17 @@
 		37E0D89122A5C7FB008CA4ED /* SourceCodePro-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 37E0D88722A5C7FB008CA4ED /* SourceCodePro-Medium.ttf */; };
 		37E0D89322A5C83B008CA4ED /* keybasemessage.wav in Resources */ = {isa = PBXBuildFile; fileRef = 37E0D89222A5C83B008CA4ED /* keybasemessage.wav */; };
 		9E1460E4A90E8D73A7347FED /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2585B4B360D5D792D408D511 /* ExpoModulesProvider.swift */; };
-		A90CD4A81FCE1D0B00F97901 /* NativeLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = A90CD4A61FCE1D0A00F97901 /* NativeLogger.m */; };
-		A969A40A1CF65C9C00F273F2 /* LogSend.m in Sources */ = {isa = PBXBuildFile; fileRef = A969A4091CF65C9C00F273F2 /* LogSend.m */; };
 		D1FCCAC47E689E1A984FAC43 /* libPods-Keybase.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AC024A34A307F5688461FEB2 /* libPods-Keybase.a */; };
+		DB05E98E28EE243000FBD6B4 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = DB05E98D28EE242F00FBD6B4 /* AppDelegate.mm */; };
 		DB07050522E21B8B002F273D /* KeepThisFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB07050422E21B8B002F273D /* KeepThisFile.swift */; };
 		DB190420275A898B00E85B2E /* keybase.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60B93983273F902C00A226FF /* keybase.xcframework */; };
-		DB27DE571D747A6C003DE8BC /* Utils.m in Sources */ = {isa = PBXBuildFile; fileRef = DB27DE561D747A6C003DE8BC /* Utils.m */; };
-		DB3B470D27EB8BCB0002139E /* rpc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DB3B470C27EB8BCB0002139E /* rpc.cpp */; };
+		DB4FA4AA29100922005E46B3 /* AppDelegate+KB.mm in Sources */ = {isa = PBXBuildFile; fileRef = DB4FA4A929100922005E46B3 /* AppDelegate+KB.mm */; };
 		DB59F9B72238A27E00E271C1 /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB59F97B2238A27E00E271C1 /* JavaScriptCore.framework */; };
-		DB779E0627D2B96600CDB0F7 /* GoJSIBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = DB779E0527D2B96600CDB0F7 /* GoJSIBridge.mm */; };
-		DBBCC6131D9C4A8100312652 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = DBBCC6121D9C4A8100312652 /* AppDelegate.m */; };
+		DBB17C7628D11A41001F3E25 /* ItemProviderHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = DBB17C7528D11A41001F3E25 /* ItemProviderHelper.m */; };
+		DBB17C7728D11A41001F3E25 /* ItemProviderHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = DBB17C7528D11A41001F3E25 /* ItemProviderHelper.m */; };
+		DBB17C7828D12237001F3E25 /* MediaUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 07C3A80A23FF2F5F00A75BA0 /* MediaUtils.m */; };
 		DBBCC6181D9C5C6A00312652 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = DBBCC6171D9C5C6A00312652 /* main.m */; };
-		DBCE36251B90F14800ECADDE /* Engine.m in Sources */ = {isa = PBXBuildFile; fileRef = DBCE36241B90F14800ECADDE /* Engine.m */; };
 		DBDCF30E1B8D03DD00BA95D8 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DBDCF3081B8D03DD00BA95D8 /* Images.xcassets */; };
-		DBEE30801FE8511F0020EBA5 /* DDTTYLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DBEE306C1FE8511F0020EBA5 /* DDTTYLogger.m */; };
-		DBEE30811FE8511F0020EBA5 /* DDOSLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DBEE306F1FE8511F0020EBA5 /* DDOSLogger.m */; };
-		DBEE30821FE8511F0020EBA5 /* DDASLLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DBEE30731FE8511F0020EBA5 /* DDASLLogger.m */; };
-		DBEE30831FE8511F0020EBA5 /* DDLog.m in Sources */ = {isa = PBXBuildFile; fileRef = DBEE30751FE8511F0020EBA5 /* DDLog.m */; };
-		DBEE30841FE8511F0020EBA5 /* DDAbstractDatabaseLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DBEE307B1FE8511F0020EBA5 /* DDAbstractDatabaseLogger.m */; };
-		DBEE30851FE8511F0020EBA5 /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = DBEE307C1FE8511F0020EBA5 /* LICENSE.txt */; };
-		DBEE30861FE8511F0020EBA5 /* DDFileLogger.m in Sources */ = {isa = PBXBuildFile; fileRef = DBEE307D1FE8511F0020EBA5 /* DDFileLogger.m */; };
-		DBEE30871FE8511F0020EBA5 /* DDASLLogCapture.m in Sources */ = {isa = PBXBuildFile; fileRef = DBEE307F1FE8511F0020EBA5 /* DDASLLogCapture.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -109,10 +97,6 @@
 		279FB6F521403B8B005E4864 /* KeybaseShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KeybaseShare.entitlements; sourceTree = "<group>"; };
 		27EE26A720A140EF00F92CD1 /* Pusher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Pusher.m; sourceTree = "<group>"; };
 		27EE26A920A1466300F92CD1 /* Pusher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Pusher.h; sourceTree = "<group>"; };
-		375CA6641FFD40D300210B11 /* Storybook.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Storybook.m; sourceTree = "<group>"; };
-		375CA6901FFD418D00210B11 /* Storybook.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Storybook.h; sourceTree = "<group>"; };
-		3791A87220C71DAA001C2E86 /* PushPrompt.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PushPrompt.h; sourceTree = "<group>"; };
-		3791A8A020C71DC0001C2E86 /* PushPrompt.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PushPrompt.m; sourceTree = "<group>"; };
 		3791A8A220C71FE6001C2E86 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		37E0D87E22A5C7FA008CA4ED /* keybase-semibold-italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "keybase-semibold-italic.ttf"; path = "../fonts/keybase-semibold-italic.ttf"; sourceTree = "<group>"; };
 		37E0D87F22A5C7FA008CA4ED /* keybase-extrabold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "keybase-extrabold.ttf"; path = "../fonts/keybase-extrabold.ttf"; sourceTree = "<group>"; };
@@ -126,64 +110,26 @@
 		37E0D88722A5C7FB008CA4ED /* SourceCodePro-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "SourceCodePro-Medium.ttf"; path = "../fonts/SourceCodePro-Medium.ttf"; sourceTree = "<group>"; };
 		37E0D89222A5C83B008CA4ED /* keybasemessage.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = keybasemessage.wav; path = ../sounds/keybasemessage.wav; sourceTree = "<group>"; };
 		60B93983273F902C00A226FF /* keybase.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = keybase.xcframework; sourceTree = "<group>"; };
-		661EA790223ADD1C00471C8C /* keybase-medium-italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "keybase-medium-italic.ttf"; sourceTree = "<group>"; };
-		661EA791223ADD1C00471C8C /* keybase-medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "keybase-medium.ttf"; sourceTree = "<group>"; };
-		661EA792223ADD1C00471C8C /* keybase-semibold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "keybase-semibold.ttf"; sourceTree = "<group>"; };
-		661EA793223ADD1C00471C8C /* keybase-bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "keybase-bold.ttf"; sourceTree = "<group>"; };
-		661EA794223ADD1C00471C8C /* keybase-semibold-italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "keybase-semibold-italic.ttf"; sourceTree = "<group>"; };
-		661EA795223ADD1D00471C8C /* keybase-extrabold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "keybase-extrabold.ttf"; sourceTree = "<group>"; };
-		661EA796223ADD1D00471C8C /* keybase-bold-italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "keybase-bold-italic.ttf"; sourceTree = "<group>"; };
-		664073E9220A0B70009B2ED7 /* SourceCodePro-Semibold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Semibold.ttf"; sourceTree = "<group>"; };
-		664073EA220A0B70009B2ED7 /* SourceCodePro-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Medium.ttf"; sourceTree = "<group>"; };
 		698E0E782682CDB9F02EDD13 /* Pods-KeybaseShare.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-KeybaseShare.release.xcconfig"; path = "Pods/Target Support Files/Pods-KeybaseShare/Pods-KeybaseShare.release.xcconfig"; sourceTree = "<group>"; };
 		97CE18EF12A69D8F947E9CB1 /* libPods-Keybase For Tests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Keybase For Tests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		A90CD4A61FCE1D0A00F97901 /* NativeLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NativeLogger.m; sourceTree = "<group>"; };
-		A90CD4A71FCE1D0A00F97901 /* NativeLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NativeLogger.h; sourceTree = "<group>"; };
-		A969A4091CF65C9C00F273F2 /* LogSend.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LogSend.m; sourceTree = "<group>"; };
-		A969A4161CF65CB200F273F2 /* LogSend.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LogSend.h; sourceTree = "<group>"; };
 		AC024A34A307F5688461FEB2 /* libPods-Keybase.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Keybase.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFDBCC82D860F984765A47D7 /* Pods-Keybase-KeybaseShare.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Keybase-KeybaseShare.release.xcconfig"; path = "Pods/Target Support Files/Pods-Keybase-KeybaseShare/Pods-Keybase-KeybaseShare.release.xcconfig"; sourceTree = "<group>"; };
 		BC9A5DEFC49AB353E670A84C /* Pods-Keybase For Tests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Keybase For Tests.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Keybase For Tests/Pods-Keybase For Tests.debug.xcconfig"; sourceTree = "<group>"; };
-		C3A47BFD1E8B148A00974A63 /* keybasemessage.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = keybasemessage.wav; path = ../../../sounds/keybasemessage.wav; sourceTree = "<group>"; };
 		C3FBA67CB37D117BE5224A75 /* Pods-Keybase.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Keybase.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Keybase/Pods-Keybase.debug.xcconfig"; sourceTree = "<group>"; };
 		C64043E42DC6AC6D37CACDD8 /* Pods-Keybase-KeybaseShare.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Keybase-KeybaseShare.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Keybase-KeybaseShare/Pods-Keybase-KeybaseShare.debug.xcconfig"; sourceTree = "<group>"; };
+		DB05E98D28EE242F00FBD6B4 /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
 		DB07050422E21B8B002F273D /* KeepThisFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepThisFile.swift; sourceTree = "<group>"; };
 		DB190422275A8B4B00E85B2E /* keybase.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = keybase.xcframework; sourceTree = "<group>"; };
-		DB27DE551D747A6B003DE8BC /* Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utils.h; sourceTree = "<group>"; };
-		DB27DE561D747A6C003DE8BC /* Utils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Utils.m; sourceTree = "<group>"; };
-		DB3B470C27EB8BCB0002139E /* rpc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rpc.cpp; path = ../../android/app/src/main/cpp/rpc.cpp; sourceTree = "<group>"; };
+		DB4FA4A629100909005E46B3 /* AppDelegate+KB.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "AppDelegate+KB.h"; sourceTree = "<group>"; };
+		DB4FA4A929100922005E46B3 /* AppDelegate+KB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "AppDelegate+KB.mm"; sourceTree = "<group>"; };
 		DB59F97B2238A27E00E271C1 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		DB779DFC27D2AD0B00CDB0F7 /* GoJSIBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GoJSIBridge.h; sourceTree = "<group>"; };
-		DB779E0527D2B96600CDB0F7 /* GoJSIBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GoJSIBridge.mm; sourceTree = "<group>"; };
+		DBB17C7428D11A41001F3E25 /* ItemProviderHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ItemProviderHelper.h; sourceTree = "<group>"; };
+		DBB17C7528D11A41001F3E25 /* ItemProviderHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ItemProviderHelper.m; sourceTree = "<group>"; };
 		DBBCC6111D9C4A8100312652 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		DBBCC6121D9C4A8100312652 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		DBBCC6171D9C5C6A00312652 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		DBCE36231B90F14800ECADDE /* Engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Engine.h; sourceTree = "<group>"; };
-		DBCE36241B90F14800ECADDE /* Engine.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Engine.m; sourceTree = "<group>"; };
-		DBDC80031DE7CC8E005387B3 /* kb.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = kb.ttf; sourceTree = "<group>"; };
 		DBDCF3081B8D03DD00BA95D8 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		DBDCF3091B8D03DD00BA95D8 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DBDCF3441B8D04FC00BA95D8 /* Keybase-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Keybase-Bridging-Header.h"; sourceTree = "<group>"; };
-		DBEE306C1FE8511F0020EBA5 /* DDTTYLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDTTYLogger.m; sourceTree = "<group>"; };
-		DBEE306D1FE8511F0020EBA5 /* DDLog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDLog.h; sourceTree = "<group>"; };
-		DBEE306E1FE8511F0020EBA5 /* DDLegacyMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDLegacyMacros.h; sourceTree = "<group>"; };
-		DBEE306F1FE8511F0020EBA5 /* DDOSLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDOSLogger.m; sourceTree = "<group>"; };
-		DBEE30701FE8511F0020EBA5 /* DDAbstractDatabaseLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDAbstractDatabaseLogger.h; sourceTree = "<group>"; };
-		DBEE30711FE8511F0020EBA5 /* DDLogMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDLogMacros.h; sourceTree = "<group>"; };
-		DBEE30721FE8511F0020EBA5 /* DDASLLogCapture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDASLLogCapture.h; sourceTree = "<group>"; };
-		DBEE30731FE8511F0020EBA5 /* DDASLLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDASLLogger.m; sourceTree = "<group>"; };
-		DBEE30741FE8511F0020EBA5 /* DDFileLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDFileLogger.h; sourceTree = "<group>"; };
-		DBEE30751FE8511F0020EBA5 /* DDLog.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDLog.m; sourceTree = "<group>"; };
-		DBEE30761FE8511F0020EBA5 /* CocoaLumberjack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CocoaLumberjack.h; sourceTree = "<group>"; };
-		DBEE30771FE8511F0020EBA5 /* DDTTYLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDTTYLogger.h; sourceTree = "<group>"; };
-		DBEE30781FE8511F0020EBA5 /* DDAssertMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDAssertMacros.h; sourceTree = "<group>"; };
-		DBEE30791FE8511F0020EBA5 /* DDOSLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDOSLogger.h; sourceTree = "<group>"; };
-		DBEE307A1FE8511F0020EBA5 /* DDLog+LOGV.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "DDLog+LOGV.h"; sourceTree = "<group>"; };
-		DBEE307B1FE8511F0020EBA5 /* DDAbstractDatabaseLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDAbstractDatabaseLogger.m; sourceTree = "<group>"; };
-		DBEE307C1FE8511F0020EBA5 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
-		DBEE307D1FE8511F0020EBA5 /* DDFileLogger.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDFileLogger.m; sourceTree = "<group>"; };
-		DBEE307E1FE8511F0020EBA5 /* DDASLLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DDASLLogger.h; sourceTree = "<group>"; };
-		DBEE307F1FE8511F0020EBA5 /* DDASLLogCapture.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DDASLLogCapture.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -229,8 +175,6 @@
 				279FB5A42139AB6A005E4864 /* Info.plist */,
 				279FB59F2139AB6A005E4864 /* ShareViewController.m */,
 				279FB5A12139AB6A005E4864 /* MainInterface.storyboard */,
-				07C3A80923FF2F5F00A75BA0 /* MediaUtils.h */,
-				07C3A80A23FF2F5F00A75BA0 /* MediaUtils.m */,
 			);
 			path = KeybaseShare;
 			sourceTree = "<group>";
@@ -281,7 +225,6 @@
 				37E0D88522A5C7FA008CA4ED /* SourceCodePro-Semibold.ttf */,
 				37E0D88322A5C7FA008CA4ED /* keybase-semibold.ttf */,
 				37E0D88722A5C7FB008CA4ED /* SourceCodePro-Medium.ttf */,
-				DBEE306B1FE8511F0020EBA5 /* CocoaLumberjack */,
 				DBDCF3031B8D03DD00BA95D8 /* Keybase */,
 				279FB59D2139AB6A005E4864 /* KeybaseShare */,
 				83CBBA001A601CBA00E9B192 /* Products */,
@@ -321,14 +264,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		C3A47BAA1E8B035500974A63 /* sounds */ = {
-			isa = PBXGroup;
-			children = (
-				C3A47BFD1E8B148A00974A63 /* keybasemessage.wav */,
-			);
-			name = sounds;
-			sourceTree = "<group>";
-		};
 		DB090F7F1F719A2F007E4E1B /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
@@ -336,87 +271,31 @@
 			name = "Recovered References";
 			sourceTree = "<group>";
 		};
-		DBDC80021DE7CC8E005387B3 /* fonts */ = {
-			isa = PBXGroup;
-			children = (
-				DBDC80031DE7CC8E005387B3 /* kb.ttf */,
-				661EA796223ADD1D00471C8C /* keybase-bold-italic.ttf */,
-				661EA793223ADD1C00471C8C /* keybase-bold.ttf */,
-				661EA795223ADD1D00471C8C /* keybase-extrabold.ttf */,
-				661EA790223ADD1C00471C8C /* keybase-medium-italic.ttf */,
-				661EA791223ADD1C00471C8C /* keybase-medium.ttf */,
-				661EA794223ADD1C00471C8C /* keybase-semibold-italic.ttf */,
-				661EA792223ADD1C00471C8C /* keybase-semibold.ttf */,
-				664073EA220A0B70009B2ED7 /* SourceCodePro-Medium.ttf */,
-				664073E9220A0B70009B2ED7 /* SourceCodePro-Semibold.ttf */,
-			);
-			name = fonts;
-			path = ../../../fonts;
-			sourceTree = "<group>";
-		};
 		DBDCF3031B8D03DD00BA95D8 /* Keybase */ = {
 			isa = PBXGroup;
 			children = (
-				C3A47BAA1E8B035500974A63 /* sounds */,
 				005BF9961BB9C6B000BD8953 /* Keybase.entitlements */,
 				DBBCC6111D9C4A8100312652 /* AppDelegate.h */,
-				DBBCC6121D9C4A8100312652 /* AppDelegate.m */,
-				DBDC80021DE7CC8E005387B3 /* fonts */,
+				DB05E98D28EE242F00FBD6B4 /* AppDelegate.mm */,
 				DBDCF3081B8D03DD00BA95D8 /* Images.xcassets */,
+				DB4FA4A629100909005E46B3 /* AppDelegate+KB.h */,
+				DB4FA4A929100922005E46B3 /* AppDelegate+KB.mm */,
 				DBDCF3091B8D03DD00BA95D8 /* Info.plist */,
 				DB07050422E21B8B002F273D /* KeepThisFile.swift */,
-				DBCE36231B90F14800ECADDE /* Engine.h */,
-				DBCE36241B90F14800ECADDE /* Engine.m */,
 				DBBCC6171D9C5C6A00312652 /* main.m */,
-				DB27DE561D747A6C003DE8BC /* Utils.m */,
-				DB27DE551D747A6B003DE8BC /* Utils.h */,
-				A969A4161CF65CB200F273F2 /* LogSend.h */,
-				DB779DFC27D2AD0B00CDB0F7 /* GoJSIBridge.h */,
-				DB779E0527D2B96600CDB0F7 /* GoJSIBridge.mm */,
-				DB3B470C27EB8BCB0002139E /* rpc.cpp */,
-				A969A4091CF65C9C00F273F2 /* LogSend.m */,
-				375CA6901FFD418D00210B11 /* Storybook.h */,
-				375CA6641FFD40D300210B11 /* Storybook.m */,
-				3791A87220C71DAA001C2E86 /* PushPrompt.h */,
-				3791A8A020C71DC0001C2E86 /* PushPrompt.m */,
-				A90CD4A71FCE1D0A00F97901 /* NativeLogger.h */,
-				A90CD4A61FCE1D0A00F97901 /* NativeLogger.m */,
+				DBB17C7428D11A41001F3E25 /* ItemProviderHelper.h */,
+				DBB17C7528D11A41001F3E25 /* ItemProviderHelper.m */,
+				07C3A80923FF2F5F00A75BA0 /* MediaUtils.h */,
+				07C3A80A23FF2F5F00A75BA0 /* MediaUtils.m */,
 				DBDCF3441B8D04FC00BA95D8 /* Keybase-Bridging-Header.h */,
 				0044E59C1BCD7CEA008EF7EE /* LaunchScreen.storyboard */,
-				27EE26A720A140EF00F92CD1 /* Pusher.m */,
 				27EE26A920A1466300F92CD1 /* Pusher.h */,
+				27EE26A720A140EF00F92CD1 /* Pusher.m */,
+				279FB69821402D82005E4864 /* Fs.h */,
 				279FB66821402D68005E4864 /* Fs.m */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
-				279FB69821402D82005E4864 /* Fs.h */,
 			);
 			path = Keybase;
-			sourceTree = "<group>";
-		};
-		DBEE306B1FE8511F0020EBA5 /* CocoaLumberjack */ = {
-			isa = PBXGroup;
-			children = (
-				DBEE306C1FE8511F0020EBA5 /* DDTTYLogger.m */,
-				DBEE306D1FE8511F0020EBA5 /* DDLog.h */,
-				DBEE306E1FE8511F0020EBA5 /* DDLegacyMacros.h */,
-				DBEE306F1FE8511F0020EBA5 /* DDOSLogger.m */,
-				DBEE30701FE8511F0020EBA5 /* DDAbstractDatabaseLogger.h */,
-				DBEE30711FE8511F0020EBA5 /* DDLogMacros.h */,
-				DBEE30721FE8511F0020EBA5 /* DDASLLogCapture.h */,
-				DBEE30731FE8511F0020EBA5 /* DDASLLogger.m */,
-				DBEE30741FE8511F0020EBA5 /* DDFileLogger.h */,
-				DBEE30751FE8511F0020EBA5 /* DDLog.m */,
-				DBEE30761FE8511F0020EBA5 /* CocoaLumberjack.h */,
-				DBEE30771FE8511F0020EBA5 /* DDTTYLogger.h */,
-				DBEE30781FE8511F0020EBA5 /* DDAssertMacros.h */,
-				DBEE30791FE8511F0020EBA5 /* DDOSLogger.h */,
-				DBEE307A1FE8511F0020EBA5 /* DDLog+LOGV.h */,
-				DBEE307B1FE8511F0020EBA5 /* DDAbstractDatabaseLogger.m */,
-				DBEE307C1FE8511F0020EBA5 /* LICENSE.txt */,
-				DBEE307D1FE8511F0020EBA5 /* DDFileLogger.m */,
-				DBEE307E1FE8511F0020EBA5 /* DDASLLogger.h */,
-				DBEE307F1FE8511F0020EBA5 /* DDASLLogCapture.m */,
-			);
-			path = CocoaLumberjack;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -434,6 +313,8 @@
 				DB3914B2232C384400DC4CDC /* Bundle React Native Code And Images */,
 				279FB5D82139AB6A005E4864 /* Embed App Extensions */,
 				84EE85CB003D1A22493F22FE /* [CP] Copy Pods Resources */,
+				7ECF27A06905DA9ADCC54B37 /* [CP] Embed Pods Frameworks */,
+				DB3A5F8F29A5686A002BF5A5 /* Strip hermes */,
 			);
 			buildRules = (
 			);
@@ -474,7 +355,6 @@
 				ORGANIZATIONNAME = Keybase;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
-						DevelopmentTeam = 99229SGT5K;
 						LastSwiftMigration = 800;
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
@@ -500,7 +380,6 @@
 					};
 					279FB59B2139AB6A005E4864 = {
 						CreatedOnToolsVersion = 9.4.1;
-						DevelopmentTeam = 99229SGT5K;
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.ApplicationGroups.iOS = {
@@ -555,7 +434,6 @@
 				37E0D88F22A5C7FB008CA4ED /* SourceCodePro-Semibold.ttf in Resources */,
 				37E0D89022A5C7FB008CA4ED /* kb.ttf in Resources */,
 				37E0D89122A5C7FB008CA4ED /* SourceCodePro-Medium.ttf in Resources */,
-				DBEE30851FE8511F0020EBA5 /* LICENSE.txt in Resources */,
 				0044E59D1BCD7CEA008EF7EE /* LaunchScreen.storyboard in Resources */,
 				DBDCF30E1B8D03DD00BA95D8 /* Images.xcassets in Resources */,
 			);
@@ -588,6 +466,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		7ECF27A06905DA9ADCC54B37 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Keybase/Pods-Keybase-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/Flipper-DoubleConversion/double-conversion.framework/double-conversion",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/Flipper-Glog/glog.framework/glog",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/OpenSSL-Universal/OpenSSL.framework/OpenSSL",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/double-conversion.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/glog.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/OpenSSL.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Keybase/Pods-Keybase-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		84EE85CB003D1A22493F22FE /* [CP] Copy Pods Resources */ = {
@@ -659,8 +559,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export NODE_BINARY=node\n../node_modules/react-native/scripts/react-native-xcode.sh\n";
+			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"../node_modules/react-native/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"../node_modules/react-native/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 			showEnvVarsInLog = 0;
+		};
+		DB3A5F8F29A5686A002BF5A5 /* Strip hermes */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Strip hermes";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "BITCODE_STRIP=\"$(xcrun -sdk iphoneos --find bitcode_strip)\"\nFRAMEWORK=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework/hermes\"\nif [ -f \"$FRAMEWORK\" ]; then\n    echo \"stripping hermes\"\n    ls -la \"${FRAMEWORK}\"\n    \"${BITCODE_STRIP}\" -r \"${FRAMEWORK}\" -o \"${FRAMEWORK}\"\n    echo \"done stripping hermes\"\n    ls -la \"${FRAMEWORK}\"\nelse \n    echo \"hermes not found, skipping strip\"\n    ls -la \"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -669,26 +587,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3791A8A120C71DC0001C2E86 /* PushPrompt.m in Sources */,
-				DB27DE571D747A6C003DE8BC /* Utils.m in Sources */,
 				DB07050522E21B8B002F273D /* KeepThisFile.swift in Sources */,
-				DBEE30861FE8511F0020EBA5 /* DDFileLogger.m in Sources */,
-				DBEE30871FE8511F0020EBA5 /* DDASLLogCapture.m in Sources */,
-				DBEE30801FE8511F0020EBA5 /* DDTTYLogger.m in Sources */,
-				DBEE30841FE8511F0020EBA5 /* DDAbstractDatabaseLogger.m in Sources */,
 				279FB66921402D68005E4864 /* Fs.m in Sources */,
-				A969A40A1CF65C9C00F273F2 /* LogSend.m in Sources */,
+				DB05E98E28EE243000FBD6B4 /* AppDelegate.mm in Sources */,
+				DB4FA4AA29100922005E46B3 /* AppDelegate+KB.mm in Sources */,
+				DBB17C7628D11A41001F3E25 /* ItemProviderHelper.m in Sources */,
 				DBBCC6181D9C5C6A00312652 /* main.m in Sources */,
-				DBEE30821FE8511F0020EBA5 /* DDASLLogger.m in Sources */,
-				DBEE30831FE8511F0020EBA5 /* DDLog.m in Sources */,
-				DB3B470D27EB8BCB0002139E /* rpc.cpp in Sources */,
-				DBEE30811FE8511F0020EBA5 /* DDOSLogger.m in Sources */,
+				DBB17C7828D12237001F3E25 /* MediaUtils.m in Sources */,
 				27EE26A820A140EF00F92CD1 /* Pusher.m in Sources */,
-				DB779E0627D2B96600CDB0F7 /* GoJSIBridge.mm in Sources */,
-				A90CD4A81FCE1D0B00F97901 /* NativeLogger.m in Sources */,
-				DBCE36251B90F14800ECADDE /* Engine.m in Sources */,
-				DBBCC6131D9C4A8100312652 /* AppDelegate.m in Sources */,
-				375CA6651FFD40D300210B11 /* Storybook.m in Sources */,
 				9E1460E4A90E8D73A7347FED /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -701,6 +607,7 @@
 				27F0BBB52142C19D007195B7 /* Pusher.m in Sources */,
 				279FB66A21402D68005E4864 /* Fs.m in Sources */,
 				279FB5A02139AB6A005E4864 /* ShareViewController.m in Sources */,
+				DBB17C7728D11A41001F3E25 /* ItemProviderHelper.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -742,12 +649,10 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
-					"$(PROJECT_DIR)/cocoalumberjack",
 				);
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
-					"$(PROJECT_DIR)/cocoalumberjack",
 					"$(PROJECT_DIR)/keybase.xcframework/ios-arm64",
 				);
 				HEADER_SEARCH_PATHS = (
@@ -755,14 +660,14 @@
 					"$(SRCROOT)/KeybaseGo",
 				);
 				INFOPLIST_FILE = Keybase/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = (
+					"$(SDKROOT)/usr/lib/swift",
 					"$(inherited)",
-					"\"$(SRCROOT)/Keybase/System/Library/Frameworks\"",
 				);
 				OTHER_CFLAGS = "-mno-thumb";
 				OTHER_LDFLAGS = (
@@ -770,6 +675,7 @@
 					"-ObjC",
 					"-lc++",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = keybase.ios;
 				PRODUCT_NAME = Keybase;
 				PROVISIONING_PROFILE = "";
@@ -797,12 +703,10 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
-					"$(PROJECT_DIR)/cocoalumberjack",
 				);
 				"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]" = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
-					"$(PROJECT_DIR)/cocoalumberjack",
 					"$(PROJECT_DIR)/keybase.xcframework/ios-arm64",
 				);
 				HEADER_SEARCH_PATHS = (
@@ -810,14 +714,14 @@
 					"$(SRCROOT)/KeybaseGo",
 				);
 				INFOPLIST_FILE = Keybase/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = (
+					"$(SDKROOT)/usr/lib/swift",
 					"$(inherited)",
-					"\"$(SRCROOT)/Keybase/System/Library/Frameworks\"",
 				);
 				OTHER_CFLAGS = "-mno-thumb";
 				OTHER_LDFLAGS = (
@@ -825,6 +729,7 @@
 					"-ObjC",
 					"-lc++",
 				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = keybase.ios;
 				PRODUCT_NAME = Keybase;
 				PROVISIONING_PROFILE = "";
@@ -841,7 +746,7 @@
 			buildSettings = {
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
@@ -871,13 +776,14 @@
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				INFOPLIST_FILE = KeybaseShare/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
 				OTHER_CFLAGS = "-mno-thumb";
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = keybase.ios.KeybaseShare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -891,7 +797,7 @@
 			buildSettings = {
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
@@ -922,13 +828,14 @@
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				INFOPLIST_FILE = KeybaseShare/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
 				OTHER_CFLAGS = "-mno-thumb";
+				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = keybase.ios.KeybaseShare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -941,7 +848,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -990,12 +897,20 @@
 					"$(inherited)",
 					"$(SRCROOT)/../node_modules/msgpack-cxx-4.1.1/include/**",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-DFOLLY_NO_CONFIG",
+					"-DFOLLY_MOBILE=1",
+					"-DFOLLY_USE_LIBCPP=1",
+				);
 				OTHER_SWIFT_FLAGS = "-DDEBUG";
 				"OTHER_SWIFT_FLAGS[sdk=iphonesimulator*]" = "-DDEBUG -DSIMULATOR";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				STRIP_BITCODE_FROM_COPIED_FILES = YES;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -1005,7 +920,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1047,10 +962,18 @@
 					"$(inherited)",
 					"$(SRCROOT)/../node_modules/msgpack-cxx-4.1.1/include",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-DFOLLY_NO_CONFIG",
+					"-DFOLLY_MOBILE=1",
+					"-DFOLLY_USE_LIBCPP=1",
+				);
 				OTHER_SWIFT_FLAGS = "";
+				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
+				STRIP_BITCODE_FROM_COPIED_FILES = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_VERSION = 5.0;
 				VALIDATE_PRODUCT = YES;

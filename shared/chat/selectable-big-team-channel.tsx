@@ -1,11 +1,11 @@
-import React, {PureComponent} from 'react'
+import * as React from 'react'
 import * as Kb from '../common-adapters'
 import * as Styles from '../styles'
-import * as Constants from '../constants/chat2'
 import {TeamAvatar} from './avatars'
 import {pluralize} from '../util/string'
 import {BottomLine} from './inbox/row/small-team/bottom-line'
-import * as RPCChatTypes from '../constants/types/rpc-chat-gen'
+import type * as RPCChatTypes from '../constants/types/rpc-chat-gen'
+import {SnippetContext} from './inbox/row/small-team/contexts'
 
 type Props = {
   isSelected: boolean
@@ -16,7 +16,7 @@ type Props = {
   onSelectConversation: () => void
   showBadge: boolean
   showBold: boolean
-  snippet: string | null
+  snippet?: string
   snippetDecoration: RPCChatTypes.SnippetDecoration
 }
 
@@ -24,7 +24,7 @@ type State = {
   isHovered: boolean
 }
 
-class SelectableBigTeamChannel extends PureComponent<Props, State> {
+class SelectableBigTeamChannel extends React.PureComponent<Props, State> {
   state = {
     isHovered: false,
   }
@@ -45,7 +45,6 @@ class SelectableBigTeamChannel extends PureComponent<Props, State> {
 
   render() {
     const boldOverride = this.props.showBold ? Styles.globalStyles.fontBold : null
-    const subColor = Constants.getRowStyles(this.props.isSelected, false).subColor
     const rowLoadedContent = (
       <>
         <TeamAvatar
@@ -84,19 +83,9 @@ class SelectableBigTeamChannel extends PureComponent<Props, State> {
             </Kb.Text>
           </Kb.Box2>
           {!this.props.numSearchHits && (
-            <BottomLine
-              participantNeedToRekey={false}
-              showBold={false}
-              subColor={subColor}
-              snippet={this.props.snippet}
-              snippetDecoration={this.props.snippetDecoration}
-              youNeedToRekey={false}
-              youAreReset={false}
-              hasResetUsers={false}
-              isSelected={this.props.isSelected}
-              isDecryptingSnippet={false}
-              isTypingSnippet={false}
-            />
+            <SnippetContext.Provider value={this.props.snippet ?? ''}>
+              <BottomLine isDecryptingSnippet={false} isSelected={this.props.isSelected} />
+            </SnippetContext.Provider>
           )}
           {!!this.props.numSearchHits && (
             <Kb.Text

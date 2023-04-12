@@ -2,8 +2,8 @@ import * as React from 'react'
 import * as Kb from '../../common-adapters/mobile.native'
 import * as Styles from '../../styles'
 import {isIOS, isTablet} from '../../constants/platform'
-import {Props} from '.'
-import {parseUri, launchImageLibraryAsync} from '../../util/expo-image-picker'
+import {type Props} from '.'
+import {parseUri, launchImageLibraryAsync} from '../../util/expo-image-picker.native'
 import {ModalTitle} from '../../teams/common'
 import * as Container from '../../util/container'
 
@@ -23,14 +23,14 @@ const AvatarUploadWrapper = (props: Props) => {
   const onChooseNewAvatar = React.useCallback(async () => {
     try {
       const result = await launchImageLibraryAsync('photo')
-      if (!result.cancelled) {
-        setSelectedImage(result)
+      if (!result.canceled && (result.assets?.length ?? 0) > 0) {
+        setSelectedImage(result.assets[0])
       } else if (!props.wizard) {
         navUp()
       }
     } catch (error_) {
       const error = error_ as any
-      setImageError(error)
+      setImageError(String(error))
     }
   }, [setImageError, setSelectedImage, navUp, props.wizard])
 
@@ -170,13 +170,11 @@ class AvatarUpload extends React.Component<Props & WrappedProps> {
       return (
         <Kb.Modal
           banners={
-            this.props.error
-              ? [
-                  <Kb.Banner key="err" color="red">
-                    {this.props.error}
-                  </Kb.Banner>,
-                ]
-              : []
+            this.props.error ? (
+              <Kb.Banner key="err" color="red">
+                <Kb.Text type="Body">{this.props.error}</Kb.Text>
+              </Kb.Banner>
+            ) : null
           }
           header={{
             leftButton: <Kb.Icon type="iconfont-arrow-left" onClick={this.props.onBack} />,
@@ -225,7 +223,11 @@ class AvatarUpload extends React.Component<Props & WrappedProps> {
     return (
       <Kb.Box2 direction="vertical" fullWidth={true} fullHeight={true}>
         <Kb.HeaderHocHeader onCancel={this.props.onClose} title={isIOS ? 'Zoom and pan' : 'Upload avatar'} />
-        {!!this.props.error && <Kb.Banner color="red">{this.props.error}</Kb.Banner>}
+        {this.props.error ? (
+          <Kb.Banner color="red">
+            <Kb.Text type="Body">{this.props.error}</Kb.Text>
+          </Kb.Banner>
+        ) : null}
         <Kb.Box style={styles.container}>
           <Kb.Box
             style={

@@ -99,7 +99,7 @@ const focusSelfOnAnotherInstanceLaunching = (commandLine: Array<string>) => {
     //
     // Windows looks like:
     // ["Keybase.exe", "--somearg", "--someotherarg", "actuallink"]
-    for (let link of commandLine.slice(1)) {
+    for (const link of commandLine.slice(1)) {
       if (isRelevantDeepLink(link)) {
         mainWindowDispatch(DeeplinksGen.createLink({link}))
         return
@@ -258,7 +258,7 @@ const willFinishLaunching = () => {
 let menubarWindowID = 0
 
 const remoteURL = (windowComponent: string, windowParam: string) =>
-  `${htmlPrefix}${assetRoot}${windowComponent}${__DEV__ ? '.dev' : ''}.html?param=${windowParam}`
+  `${htmlPrefix}${assetRoot}${windowComponent}${__FILE_SUFFIX__}.html?param=${windowParam}`
 
 const findRemoteComponent = (windowComponent: string, windowParam: string) => {
   const url = remoteURL(windowComponent, windowParam)
@@ -623,19 +623,19 @@ const plumbEvents = () => {
         if (!win) return
         const menu = Electron.Menu.buildFromTemplate([
           {
-            label: 'Copy URL',
             click: () => {
               Electron.clipboard.writeText(url)
             },
+            label: 'Copy URL',
           },
           {
-            label: 'Open in browser',
             click: () => {
               Electron.shell
                 .openExternal(url)
                 .then(() => {})
                 .catch(() => {})
             },
+            label: 'Open in browser',
           },
         ])
         menu.popup({window: win})
@@ -783,7 +783,7 @@ const plumbEvents = () => {
             contextIsolation: true,
             nodeIntegration: false,
             nodeIntegrationInWorker: false,
-            preload: `${assetRoot}preload${__DEV__ ? '.dev' : ''}.bundle.js`,
+            preload: `${assetRoot}preload${__FILE_SUFFIX__}.bundle.js`,
           },
           ...action.payload.windowOpts,
         }

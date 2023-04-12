@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as Kb from '../../../../../common-adapters'
 import * as Styles from '../../../../../styles'
-import * as ChatTypes from '../../../../../constants/types/chat2'
+import type * as ChatTypes from '../../../../../constants/types/chat2'
 
 export type Action =
   | {
@@ -73,6 +73,7 @@ export const TeamJourney = (props: Props) => {
             {props.actions.map(action =>
               action == 'wave' ? (
                 <Kb.WaveButton
+                  key="wave"
                   conversationIDKey={conversationIDKey}
                   small={true}
                   style={styles.buttonSpace}

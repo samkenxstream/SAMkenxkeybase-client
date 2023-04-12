@@ -2,7 +2,7 @@ import * as Container from '../../../util/container'
 import {memoize} from '../../../util/memoize'
 import * as RouteTreeGen from '../../../actions/route-tree-gen'
 import * as Constants from '../../../constants/wallets'
-import * as Types from '../../../constants/types/wallets'
+import type * as Types from '../../../constants/types/wallets'
 import Header from '.'
 
 const otherUnreadPayments = memoize(
@@ -37,10 +37,14 @@ export default Container.connect(
           ],
         })
       ),
+    onBack: () => {
+      dispatch(RouteTreeGen.createNavigateUp())
+    },
     onSettings: () => dispatch(RouteTreeGen.createNavigateAppend({path: ['settings']})),
   }),
   (stateProps, dispatchProps, _: OwnProps) => ({
     ...stateProps,
+    onBack: dispatchProps.onBack,
     onReceive: () => dispatchProps._onReceive(stateProps.accountID),
     onSettings: dispatchProps.onSettings,
   })

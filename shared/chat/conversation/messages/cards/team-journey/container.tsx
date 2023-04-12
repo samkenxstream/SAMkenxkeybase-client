@@ -1,22 +1,24 @@
-import * as React from 'react'
-import * as Kb from '../../../../../common-adapters'
 import * as Chat2Gen from '../../../../../actions/chat2-gen'
-import * as TeamsGen from '../../../../../actions/teams-gen'
 import * as Constants from '../../../../../constants/chat2'
 import * as Container from '../../../../../util/container'
-import * as MessageTypes from '../../../../../constants/types/chat2/message'
-import * as RouteTreeGen from '../../../../../actions/route-tree-gen'
+import * as Kb from '../../../../../common-adapters'
 import * as RPCChatTypes from '../../../../../constants/types/rpc-chat-gen'
+import * as React from 'react'
+import * as RouteTreeGen from '../../../../../actions/route-tree-gen'
 import * as TeamConstants from '../../../../../constants/teams'
-import * as TeamTypes from '../../../../../constants/types/teams'
-import {teamsTab} from '../../../../../constants/tabs'
-import * as ChatTypes from '../../../../../constants/types/chat2'
-import {TeamJourney, Action} from '.'
+import * as TeamsGen from '../../../../../actions/teams-gen'
+import type * as ChatTypes from '../../../../../constants/types/chat2'
+import type * as MessageTypes from '../../../../../constants/types/chat2/message'
+import type * as TeamTypes from '../../../../../constants/types/teams'
+import {TeamJourney, type Action} from '.'
+import {makeMessageJourneycard} from '../../../../../constants/chat2/message'
 import {renderWelcomeMessage} from './util'
+import {teamsTab} from '../../../../../constants/tabs'
 import {useAllChannelMetas} from '../../../../../teams/common/channel-hooks'
 
 type OwnProps = {
-  message: MessageTypes.MessageJourneycard
+  conversationIDKey: ChatTypes.ConversationIDKey
+  ordinal: ChatTypes.Ordinal
 }
 
 type Props = {
@@ -102,66 +104,18 @@ const TeamJourneyContainer = (props: Props) => {
       }
       break
     case RPCChatTypes.JourneycardType.addPeople:
-      actions = [{label: 'Add people to the team', onClick: props.onAddPeopleToTeam}]
-      image = 'icon-illustration-friends-96'
-      textComponent = props.message.openTeam ? (
-        <Kb.Text type="BodySmall">
-          Do you know people interested in joining?{' '}
-          <Kb.Text onClick={props.onShowTeam} type="BodySmallBold">
-            {props.teamname}
-          </Kb.Text>{' '}
-          is open to anyone.
-        </Kb.Text>
-      ) : (
-        <Kb.Text type="BodySmall">
-          Do you know people interested in joining{' '}
-          <Kb.Text onClick={props.onShowTeam} type="BodySmallBold">
-            {props.teamname}
-          </Kb.Text>
-          ?
-        </Kb.Text>
-      )
-      break
+      return null
     case RPCChatTypes.JourneycardType.createChannels:
-      actions = [{label: 'Create chat channels', onClick: props.onCreateChatChannels}]
-      image = 'icon-illustration-happy-chat-96'
-      textComponent = (
-        <Kb.Text type="BodySmall">
-          Go ahead and create <Kb.Text type="BodySmallBold">#channels</Kb.Text> around topics you think are
-          missing.
-        </Kb.Text>
-      )
-      break
+      return null
     case RPCChatTypes.JourneycardType.msgAttention:
-      // XXX: implement
-      image = 'icon-illustration-attention-64'
-      textComponent = <Kb.Text type="BodySmall">One of your messages is getting a lot of attention!</Kb.Text>
-      break
+      return null
     case RPCChatTypes.JourneycardType.channelInactive:
-      image = 'icon-illustration-sleepy-96'
-      textComponent = (
-        <Kb.Text type="BodySmall">Zzz… This channel hasn’t been very active…. Revive it?</Kb.Text>
-      )
-      break
+      return null
     case RPCChatTypes.JourneycardType.msgNoAnswer:
-      {
-        const otherChannelsForNoAnswer = otherChannelsBase
-          .slice(0, Container.isMobile ? 2 : 3)
-          .map(info => info.channelname)
-        actions = otherChannelsForNoAnswer.map(chan => ({
-          label: `#${chan}`,
-          onClick: () => props.onGoToChannel(chan),
-        }))
-        textComponent = (
-          <Kb.Text type="BodySmall">
-            People haven’t been talkative in a while. Perhaps post in another channel?
-          </Kb.Text>
-        )
-      }
-      break
+      return null
     default:
       console.warn(`Unexpected journey card type: ${props.message.cardType}`)
-      return <Kb.Box2 direction="horizontal" />
+      return null
   }
 
   return props.teamname ? (
@@ -178,10 +132,15 @@ const TeamJourneyContainer = (props: Props) => {
   ) : null
 }
 
+const emptyJourney = makeMessageJourneycard({})
+
 const TeamJourneyConnected = Container.connect(
   (state, ownProps: OwnProps) => {
-    const conv = Constants.getMeta(state, ownProps.message.conversationIDKey)
-    const {cannotWrite, channelname, conversationIDKey, teamname, teamID} = conv
+    const {conversationIDKey, ordinal} = ownProps
+    const m = state.chat2.messageMap.get(conversationIDKey)?.get(ordinal)
+    const message = m?.type === 'journeycard' ? m : emptyJourney
+    const conv = Constants.getMeta(state, conversationIDKey)
+    const {cannotWrite, channelname, teamname, teamID} = conv
     const welcomeMessage = {display: '', raw: '', set: false}
     return {
       _teamID: teamID,
@@ -190,6 +149,7 @@ const TeamJourneyConnected = Container.connect(
       channelname,
       conversationIDKey,
       isBigTeam: TeamConstants.isBigTeam(state, teamID),
+      message,
       teamname,
       welcomeMessage,
     }
@@ -220,7 +180,7 @@ const TeamJourneyConnected = Container.connect(
     _onShowTeam: (teamID: TeamTypes.TeamID) =>
       dispatch(RouteTreeGen.createNavigateAppend({path: [teamsTab, {props: {teamID}, selected: 'team'}]})),
   }),
-  (stateProps, dispatchProps, ownProps) => {
+  (stateProps, dispatchProps) => {
     const {
       canShowcase,
       cannotWrite,
@@ -229,6 +189,7 @@ const TeamJourneyConnected = Container.connect(
       teamname,
       isBigTeam,
       welcomeMessage,
+      message,
     } = stateProps
 
     return {
@@ -237,17 +198,13 @@ const TeamJourneyConnected = Container.connect(
       channelname,
       conversationIDKey,
       isBigTeam,
-      message: ownProps.message,
+      message,
       onAddPeopleToTeam: () => dispatchProps._onAddPeopleToTeam(stateProps._teamID),
       onAuthorClick: () => dispatchProps._onAuthorClick(stateProps._teamID),
       onBrowseChannels: () => dispatchProps._onManageChannels(stateProps._teamID),
       onCreateChatChannels: () => dispatchProps._onCreateChannel(stateProps._teamID),
       onDismiss: () =>
-        dispatchProps._onDismiss(
-          stateProps.conversationIDKey,
-          ownProps.message.cardType,
-          ownProps.message.ordinal
-        ),
+        dispatchProps._onDismiss(stateProps.conversationIDKey, message.cardType, message.ordinal),
       onGoToChannel: (channelName: string) => dispatchProps._onGoToChannel(channelName, stateProps.teamname),
       onPublishTeam: () => dispatchProps._onPublishTeam(stateProps._teamID),
       onScrollBack: () => console.log('onScrollBack'),

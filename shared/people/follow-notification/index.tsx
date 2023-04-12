@@ -1,6 +1,6 @@
 import * as React from 'react'
 import PeopleItem from '../item'
-import * as Types from '../../constants/types/people'
+import type * as Types from '../../constants/types/people'
 import * as Kb from '../../common-adapters'
 import * as Styles from '../../styles'
 import {FollowButton} from '../../settings/contacts-joined/buttons'
@@ -80,7 +80,7 @@ const FollowNotification = (props: Props) => {
   )
 }
 
-export const MultiFollowNotification = React.memo((props: Props) => {
+export const MultiFollowNotification = React.memo(function MultiFollowNotification(props: Props) {
   if (props.newFollows.length <= 1) {
     throw new Error('Multi follow notification must have more than one user supplied')
   }

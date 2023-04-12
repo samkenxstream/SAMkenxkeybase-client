@@ -93,7 +93,6 @@ const ReflessLabeledInput = (props: Props & RefProps) => {
           {placeholder}
         </Text>
       </Box2>
-
       <PlainInput
         {...plainInputProps}
         onChangeText={_onChangeText}
@@ -118,9 +117,9 @@ ReflessLabeledInput.defaultProps = {
   textType: 'BodySemibold',
 }
 
-const LabeledInput = React.forwardRef<PlainInput, Props>((props, ref) => (
-  <ReflessLabeledInput {...props} forwardedRef={ref} />
-))
+const LabeledInput = React.forwardRef<PlainInput, Props>(function LabeledInput(props, ref) {
+  return <ReflessLabeledInput {...props} forwardedRef={ref} />
+})
 
 const styles = Styles.styleSheetCreate(
   () =>
@@ -165,6 +164,7 @@ const styles = Styles.styleSheetCreate(
           width: '100%',
         },
         isElectron: {
+          marginTop: 14 + Styles.globalMargins.xsmall,
           zIndex: 0,
         },
       }),

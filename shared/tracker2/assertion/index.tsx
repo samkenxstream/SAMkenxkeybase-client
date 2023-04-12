@@ -1,7 +1,12 @@
 import * as React from 'react'
-import * as Types from '../../constants/types/tracker2'
+import * as RouteTreeGen from '../../actions/route-tree-gen'
+import * as ConfigGen from '../../actions/config-gen'
+import * as Container from '../../util/container'
+import * as WalletsType from '../../constants/types/wallets'
+import * as WalletsGen from '../../actions/wallets-gen'
 import * as Kb from '../../common-adapters'
 import * as Styles from '../../styles'
+import type * as Types from '../../constants/types/tracker2'
 import {SiteIcon} from '../../profile/generic/shared'
 import {formatTimeForAssertionPopup} from '../../util/timestamp'
 
@@ -11,16 +16,12 @@ type Props = {
   isYours: boolean
   metas: ReadonlyArray<Types.AssertionMeta>
   notAUser: boolean
-  onCopyAddress: () => void
   onHideStellar: (hidden: boolean) => void
-  onRequestLumens: () => void
   onRecheck?: () => void
   onRevoke?: () => void
-  onSendLumens: () => void
   onShowProof?: () => void
   onShowSite?: () => void
   onCreateProof?: () => void
-  onWhatIsStellar: () => void
   proofURL: string
   siteIcon?: Types.SiteIconSet
   siteIconDarkmode?: Types.SiteIconSet
@@ -131,61 +132,81 @@ const assertionColorToColor = (c: Types.AssertionColor) => {
   }
 }
 
-class _StellarValue extends React.PureComponent<
-  Props & Kb.OverlayParentProps,
-  {storedAttachmentRef: Kb.Box | null}
-> {
-  state = {storedAttachmentRef: null}
-  // only set this once ever
-  _storeAttachmentRef = storedAttachmentRef =>
-    !this.state.storedAttachmentRef && this.setState({storedAttachmentRef})
-  _getAttachmentRef = () => this.state.storedAttachmentRef
-  render() {
-    const menuItems = [
-      {newTag: true, onClick: this.props.onSendLumens, title: 'Send Lumens (XLM)'},
-      {newTag: true, onClick: this.props.onRequestLumens, title: 'Request Lumens (XLM)'},
-      {onClick: this.props.onCopyAddress, title: 'Copy address'},
-      'Divider' as const,
-      {onClick: this.props.onWhatIsStellar, title: 'What is Stellar?'},
-    ]
+const StellarValue = (p: Props) => {
+  const {value, color} = p
+  const dispatch = Container.useDispatch()
 
-    return Styles.isMobile ? (
-      <Kb.Text
-        type="BodyPrimaryLink"
-        style={Styles.collapseStyles([styles.username, {color: assertionColorToTextColor(this.props.color)}])}
-      >
-        {this.props.value}
-      </Kb.Text>
-    ) : (
-      <Kb.Box ref={r => this._storeAttachmentRef(r)} style={styles.tooltip}>
-        <Kb.WithTooltip
-          tooltip={Styles.isMobile || this.props.showingMenu ? '' : 'Stellar Federation Address'}
-        >
-          <Kb.Text
-            type="BodyPrimaryLink"
-            onClick={this.props.toggleShowingMenu}
-            style={Styles.collapseStyles([
-              styles.username,
-              {color: assertionColorToTextColor(this.props.color)},
-            ])}
-          >
-            {this.props.value}
-          </Kb.Text>
-        </Kb.WithTooltip>
-        <Kb.FloatingMenu
-          attachTo={this.state.storedAttachmentRef ? this._getAttachmentRef : undefined}
-          closeOnSelect={true}
-          containerStyle={undefined}
-          items={menuItems}
-          onHidden={this.props.toggleShowingMenu}
-          visible={this.props.showingMenu}
-          position="bottom center"
-        />
-      </Kb.Box>
+  const onCopyAddress = () => {
+    dispatch(ConfigGen.createCopyToClipboard({text: value}))
+  }
+
+  const onWhatIsStellar = () => {
+    dispatch(RouteTreeGen.createNavigateAppend({path: ['whatIsStellarModal']}))
+  }
+
+  const onRequestLumens = () => {
+    dispatch(
+      WalletsGen.createOpenSendRequestForm({
+        from: WalletsType.noAccountID,
+        isRequest: true,
+        recipientType: 'keybaseUser',
+        to: value.split('*')[0],
+      })
     )
   }
+
+  const onSendLumens = () => {
+    dispatch(
+      WalletsGen.createOpenSendRequestForm({
+        from: WalletsType.noAccountID,
+        isRequest: false,
+        recipientType: 'keybaseUser',
+        to: value.split('*')[0],
+      })
+    )
+  }
+
+  const {toggleShowingPopup, showingPopup, popup, popupAnchor} = Kb.usePopup(attachTo => (
+    <Kb.FloatingMenu
+      attachTo={attachTo}
+      closeOnSelect={true}
+      items={menuItems}
+      onHidden={toggleShowingPopup}
+      visible={showingPopup}
+      position="bottom center"
+    />
+  ))
+
+  const menuItems: Kb.MenuItems = [
+    {newTag: true, onClick: onSendLumens, title: 'Send Lumens (XLM)'},
+    {newTag: true, onClick: onRequestLumens, title: 'Request Lumens (XLM)'},
+    {onClick: onCopyAddress, title: 'Copy address'},
+    'Divider' as const,
+    {onClick: onWhatIsStellar, title: 'What is Stellar?'},
+  ]
+
+  return Styles.isMobile ? (
+    <Kb.Text
+      type="BodyPrimaryLink"
+      style={Styles.collapseStyles([styles.username, {color: assertionColorToTextColor(color)}])}
+    >
+      {value}
+    </Kb.Text>
+  ) : (
+    <Kb.Box ref={popupAnchor} style={styles.tooltip}>
+      <Kb.WithTooltip tooltip={Styles.isMobile || showingPopup ? '' : 'Stellar Federation Address'}>
+        <Kb.Text
+          type="BodyPrimaryLink"
+          onClick={toggleShowingPopup}
+          style={Styles.collapseStyles([styles.username, {color: assertionColorToTextColor(color)}])}
+        >
+          {value}
+        </Kb.Text>
+      </Kb.WithTooltip>
+      {popup}
+    </Kb.Box>
+  )
 }
-const StellarValue = Kb.OverlayParentHOC(_StellarValue)
 
 const Value = (p: Props) => {
   let content: JSX.Element | null = null
@@ -227,15 +248,50 @@ const Value = (p: Props) => {
   return content
 }
 
-const HoverOpacity = Styles.styled(Kb.Box)(() => ({
-  '&:hover': {
-    opacity: 1,
-  },
-  opacity: 0.5,
-}))
+const HoverOpacity = (p: {children: React.ReactNode}) => (
+  <Kb.Box className="hover-opacy inverted">{p.children}</Kb.Box>
+)
 
 type State = {
   showingMenu: boolean
+}
+
+type SIProps = {
+  full: boolean
+} & Pick<
+  Props,
+  | 'siteIconFullDarkmode'
+  | 'siteIconFull'
+  | 'siteIconDarkmode'
+  | 'siteIcon'
+  | 'onCreateProof'
+  | 'onShowProof'
+  | 'isSuggestion'
+>
+const AssertionSiteIcon = (p: SIProps) => {
+  const {full, siteIconFullDarkmode, siteIconFull, siteIconDarkmode, siteIcon} = p
+  const {onCreateProof, onShowProof, isSuggestion} = p
+  const isDarkMode = React.useContext(Styles.DarkModeContext)
+  const set = full
+    ? isDarkMode
+      ? siteIconFullDarkmode
+      : siteIconFull
+    : isDarkMode
+    ? siteIconDarkmode
+    : siteIcon
+  if (!set) return null
+  let child = <SiteIcon full={full} set={set} />
+  if (full) {
+    return child
+  }
+  if (!Styles.isMobile && isSuggestion) {
+    child = <HoverOpacity>{child}</HoverOpacity>
+  }
+  return (
+    <Kb.ClickableBox onClick={onCreateProof || onShowProof} style={isSuggestion ? styles.halfOpacity : null}>
+      {child}
+    </Kb.ClickableBox>
+  )
 }
 
 class Assertion extends React.PureComponent<Props, State> {
@@ -308,7 +364,16 @@ class Assertion extends React.PureComponent<Props, State> {
           fullWidth={true}
         >
           <Kb.Box2 direction="vertical" style={styles.positionRelative}>
-            {this._siteIcon(true)}
+            <AssertionSiteIcon
+              full={true}
+              siteIconFullDarkmode={this.props.siteIconFullDarkmode}
+              siteIconFull={this.props.siteIconFull}
+              siteIconDarkmode={this.props.siteIconDarkmode}
+              siteIcon={this.props.siteIcon}
+              onCreateProof={this.props.onCreateProof}
+              onShowProof={this.props.onShowProof}
+              isSuggestion={this.props.isSuggestion}
+            />
             <Kb.Icon type={stateToDecorationIcon(p.state)} style={styles.siteIconFullDecoration} />
           </Kb.Box2>
           {!!this.props.timestamp && (
@@ -323,31 +388,6 @@ class Assertion extends React.PureComponent<Props, State> {
       ),
       items: [{onClick: p.onShowProof, title: `View ${proofTypeToDesc(p.type)}`}, onRevoke],
     }
-  }
-  _siteIcon = (full: boolean) => {
-    const set = full
-      ? Styles.isDarkMode()
-        ? this.props.siteIconFullDarkmode
-        : this.props.siteIconFull
-      : Styles.isDarkMode()
-      ? this.props.siteIconDarkmode
-      : this.props.siteIcon
-    if (!set) return null
-    let child = <SiteIcon full={full} set={set} />
-    if (full) {
-      return child
-    }
-    if (!Styles.isMobile && this.props.isSuggestion) {
-      child = <HoverOpacity>{child}</HoverOpacity>
-    }
-    return (
-      <Kb.ClickableBox
-        onClick={this.props.onCreateProof || this.props.onShowProof}
-        style={this.props.isSuggestion ? styles.halfOpacity : null}
-      >
-        {child}
-      </Kb.ClickableBox>
-    )
   }
   render() {
     const p = this.props
@@ -369,7 +409,16 @@ class Assertion extends React.PureComponent<Props, State> {
           gapStart={true}
           gapEnd={true}
         >
-          {this._siteIcon(false)}
+          <AssertionSiteIcon
+            full={false}
+            siteIconFullDarkmode={this.props.siteIconFullDarkmode}
+            siteIconFull={this.props.siteIconFull}
+            siteIconDarkmode={this.props.siteIconDarkmode}
+            siteIcon={this.props.siteIcon}
+            onCreateProof={this.props.onCreateProof}
+            onShowProof={this.props.onShowProof}
+            isSuggestion={this.props.isSuggestion}
+          />
           <Kb.Text type="Body" style={styles.textContainer}>
             <Value {...p} />
             {!p.isSuggestion && (

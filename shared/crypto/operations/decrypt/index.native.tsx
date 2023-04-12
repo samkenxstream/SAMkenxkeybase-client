@@ -16,11 +16,11 @@ export const DecryptInput = () => {
     }
   }, [dispatch])
   return (
-    <>
+    <Kb.KeyboardAvoidingView2>
       <OperationBanner operation={operation} />
       <Input operation={operation} />
       <InputActionsBar operation={operation} />
-    </>
+    </Kb.KeyboardAvoidingView2>
   )
 }
 
@@ -32,15 +32,5 @@ export const DecryptOutput = () => (
     <OutputActionsBar operation={operation} />
   </>
 )
-
-DecryptInput.navigationOptions = {
-  headerShown: true,
-  title: 'Decrypt',
-}
-DecryptOutput.navigationOptions = {
-  headerLeft: p => <Kb.HeaderLeftCancel {...p} />,
-  headerShown: true,
-  title: 'Decrypt',
-}
 
 export default DecryptInput

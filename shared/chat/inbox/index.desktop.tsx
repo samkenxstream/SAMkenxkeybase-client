@@ -13,8 +13,8 @@ import debounce from 'lodash/debounce'
 import throttle from 'lodash/throttle'
 import {inboxWidth, getRowHeight, smallRowHeight, dividerHeight} from './row/sizes'
 import {makeRow} from './row'
-import {virtualListMarks} from '../../local-debug'
 import shallowEqual from 'shallowequal'
+import './inbox.css'
 
 type State = {
   dragY: number
@@ -125,7 +125,7 @@ class Inbox extends React.Component<T.Props, State> {
       // likely small teams were just collapsed
       return null
     }
-    const divStyle = Styles.collapseStyles([style, virtualListMarks && styles.divider])
+    const divStyle = style
     if (row.type === 'divider') {
       const newSmallRows = this.deltaNewSmallRows()
       let expandingRows: Array<string> = []
@@ -197,7 +197,7 @@ class Inbox extends React.Component<T.Props, State> {
 
     // pointer events on so you can click even right after a scroll
     return (
-      <div style={Styles.collapseStyles([divStyle, {pointerEvents: 'auto'}])}>
+      <div style={Styles.collapseStyles([divStyle, {pointerEvents: 'auto'} as any])}>
         {makeRow(row, this.props.navKey)}
       </div>
     )
@@ -339,7 +339,7 @@ class Inbox extends React.Component<T.Props, State> {
     )
     return (
       <Kb.ErrorBoundary>
-        <InboxHoverContainer style={styles.container}>
+        <Kb.Box className="inbox-hover-container" style={styles.container}>
           <div
             style={styles.list}
             onDragEnd={this.onDrop}
@@ -369,24 +369,11 @@ class Inbox extends React.Component<T.Props, State> {
           {this.state.showUnread && !this.state.showFloating && (
             <UnreadShortcut onClick={this.scrollToUnread} unreadCount={this.state.unreadCount} />
           )}
-        </InboxHoverContainer>
+        </Kb.Box>
       </Kb.ErrorBoundary>
     )
   }
 }
-
-const InboxHoverContainer = Styles.styled(Kb.Box)({
-  '.grabLines': {
-    opacity: 0,
-    transition: 'opacity 0.25s ease-in-out',
-  },
-  '.grabLinesContainer': {
-    opacity: 0.5,
-    transition: 'opacity 0.25s ease-in-out',
-  },
-  ':hover .grabLines': {opacity: 1},
-  ':hover .grabLinesContainer': {opacity: 1},
-})
 
 const styles = Styles.styleSheetCreate(
   () =>

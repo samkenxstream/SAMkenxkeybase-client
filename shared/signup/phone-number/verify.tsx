@@ -23,13 +23,11 @@ const VerifyPhoneNumber = (props: Props) => {
     <SignupScreen
       onBack={props.onBack}
       banners={
-        props.error
-          ? [
-              <Kb.Banner key="error" color="red">
-                <Kb.BannerParagraph bannerColor="red" content={props.error} />
-              </Kb.Banner>,
-            ]
-          : []
+        props.error ? (
+          <Kb.Banner key="error" color="red">
+            <Kb.BannerParagraph bannerColor="red" content={props.error} />
+          </Kb.Banner>
+        ) : null
       }
       buttons={[{label: 'Continue', onClick: onContinue, type: 'Success', waiting: props.verifyWaiting}]}
       titleComponent={
@@ -97,9 +95,7 @@ export const VerifyBody = (props: BodyProps) => {
         textType="Header"
         textContentType="oneTimeCode"
       >
-        {Styles.isAndroid ? (
-          undefined
-        ) : (
+        {Styles.isAndroid ? undefined : (
           <Kb.Text type="Header" style={styles.inputText}>
             {/* We put this child in Input because some text styles don't work on RN input itself - the one we need here is letterSpacing */}
             {props.code}

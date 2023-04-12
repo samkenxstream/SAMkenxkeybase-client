@@ -55,6 +55,11 @@ pvl-tools/node_modules
 shared/.tsOuts/.*
 # Storybook
 shared/.cache
+node_modules
+.gradle
+rnmodules/react-native-drop-view/android/build
+rnmodules/react-native-kb/android/build
+rnmodules/react-native-kb/android/.cxx
 
 Keybase.app.dSYM.zip
 
@@ -77,3 +82,7 @@ go/.go_package_deps*
 
 # CI artifact
 go/keybase/keybase_production
+go/keybase_freebsd
+go/keybase_netbsd
+go/keybase_openbsd
+

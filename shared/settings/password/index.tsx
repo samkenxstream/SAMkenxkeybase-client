@@ -1,4 +1,4 @@
-import React, {Component} from 'react'
+import * as React from 'react'
 import * as Styles from '../../styles'
 import * as Kb from '../../common-adapters'
 
@@ -23,7 +23,7 @@ type State = {
   errorSaving: string
 }
 
-class UpdatePassword extends Component<Props, State> {
+class UpdatePassword extends React.Component<Props, State> {
   state: State
 
   constructor(props: Props) {
@@ -94,31 +94,33 @@ class UpdatePassword extends Component<Props, State> {
     return (
       <Kb.Modal
         backgroundStyle={styles.passwordBackground}
-        banners={[
-          !!notification && (
-            <Kb.Banner color="yellow">
-              <Kb.BannerParagraph bannerColor="yellow" content={notification} />
-            </Kb.Banner>
-          ),
-          !!this.props.newPasswordError && (
-            <Kb.Banner color="red">
-              <Kb.BannerParagraph bannerColor="red" content={this.props.newPasswordError} />
-            </Kb.Banner>
-          ),
-          this.props.hasPGPKeyOnServer === null && (
-            <Kb.Banner color="red">
-              <Kb.BannerParagraph
-                bannerColor="red"
-                content="There was a problem downloading your PGP key status."
-              />
-            </Kb.Banner>
-          ),
-          !!this.props.newPasswordConfirmError && (
-            <Kb.Banner color="red">
-              <Kb.BannerParagraph bannerColor="red" content={this.props.newPasswordConfirmError} />
-            </Kb.Banner>
-          ),
-        ]}
+        banners={
+          <>
+            {notification ? (
+              <Kb.Banner color="yellow">
+                <Kb.BannerParagraph bannerColor="yellow" content={notification} />
+              </Kb.Banner>
+            ) : null}
+            {this.props.newPasswordError ? (
+              <Kb.Banner color="red">
+                <Kb.BannerParagraph bannerColor="red" content={this.props.newPasswordError} />
+              </Kb.Banner>
+            ) : null}
+            {this.props.hasPGPKeyOnServer === null ? (
+              <Kb.Banner color="red">
+                <Kb.BannerParagraph
+                  bannerColor="red"
+                  content="There was a problem downloading your PGP key status."
+                />
+              </Kb.Banner>
+            ) : null}
+            {this.props.newPasswordConfirmError ? (
+              <Kb.Banner color="red">
+                <Kb.BannerParagraph bannerColor="red" content={this.props.newPasswordConfirmError} />
+              </Kb.Banner>
+            ) : null}
+          </>
+        }
         footer={{
           content: (
             <Kb.ButtonBar align="center" direction="row" fullWidth={true} style={styles.buttonBar}>

@@ -10,7 +10,7 @@ import Typing from './typing'
 import WalletsIcon from './wallets-icon'
 import type * as Types from '../../../../constants/types/chat2'
 import type {Props} from './platform-input'
-import {EmojiPickerDesktop} from '../../messages/react-button/emoji-picker/container'
+import {EmojiPickerDesktop} from '../../../emoji-picker/container'
 import {KeyEventHandler} from '../../../../util/key-event-handler.desktop'
 import {formatDurationShort} from '../../../../util/timestamp'
 import {useSuggestors} from '../suggestors'
@@ -23,24 +23,26 @@ type ExplodingButtonProps = Pick<Props, 'explodingModeSeconds' | 'conversationID
 }
 const ExplodingButton = (p: ExplodingButtonProps) => {
   const {explodingModeSeconds, conversationIDKey, focusInput} = p
-  const {popup, popupAnchor, showingPopup, toggleShowingPopup} = Kb.usePopup(
-    attachTo => {
+  const makePopup = React.useCallback(
+    (p: Kb.Popup2Parms) => {
+      const {attachTo, toggleShowingPopup} = p
       return (
         <SetExplodingMessagePopup
           attachTo={attachTo}
           conversationIDKey={conversationIDKey}
           onAfterSelect={focusInput}
           onHidden={toggleShowingPopup}
-          visible={showingPopup}
+          visible={true}
         />
       )
     },
     [conversationIDKey, focusInput]
   )
+  const {popup, popupAnchor, showingPopup, toggleShowingPopup} = Kb.usePopup2(makePopup)
 
   return (
-    <HoverBox
-      className={Styles.classNames({expanded: showingPopup})}
+    <Kb.Box
+      className={Styles.classNames({expanded: showingPopup}, 'timer-icon-container')}
       onClick={toggleShowingPopup}
       forwardedRef={popupAnchor}
       style={Styles.collapseStyles([
@@ -59,7 +61,7 @@ const ExplodingButton = (p: ExplodingButtonProps) => {
       ) : (
         <Kb.WithTooltip tooltip="Timer">
           <Kb.Icon
-            className="timer"
+            className={Styles.classNames('timer-icon', 'hover_color_black')}
             colorOverride={null}
             onClick={toggleShowingPopup}
             padding="xtiny"
@@ -67,7 +69,7 @@ const ExplodingButton = (p: ExplodingButtonProps) => {
           />
         </Kb.WithTooltip>
       )}
-    </HoverBox>
+    </Kb.Box>
   )
 }
 
@@ -77,8 +79,9 @@ const EmojiButton = (p: EmojiButtonProps) => {
   const insertEmoji = React.useCallback(
     (emojiColons: string) => {
       inputRef.current?.transformText(({text, selection}) => {
-        const newText = text.slice(0, selection.start || 0) + emojiColons + text.slice(selection.end || 0)
-        const pos = (selection.start || 0) + emojiColons.length
+        const newText =
+          text.slice(0, selection.start || 0) + emojiColons + text.slice(selection.end || 0) + ' '
+        const pos = (selection.start || 0) + emojiColons.length + 1
         return {
           selection: {end: pos, start: pos},
           text: newText,
@@ -331,12 +334,24 @@ const SideButtons = (p: SideButtonsProps) => {
   )
 }
 
-const PlatformInput = (p: Props) => {
-  const {cannotWrite, conversationIDKey, explodingModeSeconds} = p
-  const {showWalletsIcon, hintText, inputSetRef, isEditing} = p
+const getYou = (state: Container.TypedState) => state.config.username
+
+const PlatformInput = React.memo(function PlatformInput(p: Props) {
+  const {cannotWrite, conversationIDKey, explodingModeSeconds, onCancelEditing} = p
+  const {showWalletsIcon, hintText, inputSetRef, isEditing, onSubmit} = p
   const {onRequestScrollDown, onRequestScrollUp, showReplyPreview} = p
   const htmlInputRef = React.useRef<HTMLInputElement>(null)
   const inputRef = React.useRef<Kb.PlainInput | null>(null)
+
+  const checkEnterOnKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !(e.altKey || e.shiftKey || e.metaKey)) {
+        e.preventDefault()
+        inputRef.current && onSubmit(inputRef.current.value)
+      }
+    },
+    [onSubmit]
+  )
 
   const {
     popup,
@@ -346,11 +361,8 @@ const PlatformInput = (p: Props) => {
     conversationIDKey,
     expanded: false,
     inputRef,
-    onBlur: p.onBlur,
     onChangeText: p.onChangeText,
-    onFocus: p.onFocus,
-    onKeyDown: p.onKeyDown,
-    onSelectionChange: p.onSelectionChange,
+    onKeyDown: checkEnterOnKeyDown,
     suggestBotCommandsUpdateStatus: p.suggestBotCommandsUpdateStatus,
     suggestionListStyle: undefined,
     suggestionOverlayStyle: p.suggestionOverlayStyle,
@@ -361,7 +373,7 @@ const PlatformInput = (p: Props) => {
     inputRef.current?.focus()
   }, [inputRef])
   const dispatch = Container.useDispatch()
-  const you = Container.useSelector(state => state.config.username)
+  const you = Container.useSelector(getYou)
   const onEditLastMessage = React.useCallback(() => {
     dispatch(
       Chat2Gen.createMessageSetEditing({
@@ -371,10 +383,6 @@ const PlatformInput = (p: Props) => {
       })
     )
   }, [dispatch, conversationIDKey, you])
-
-  const onCancelEditing = React.useCallback(() => {
-    dispatch(Chat2Gen.createMessageSetEditing({conversationIDKey, ordinal: null}))
-  }, [dispatch, conversationIDKey])
 
   const {globalKeyDownPressHandler, inputKeyDown, onChangeText} = useKeyboard({
     conversationIDKey,
@@ -425,7 +433,7 @@ const PlatformInput = (p: Props) => {
                 autoFocus={false}
                 ref={(ref: null | Kb.PlainInput) => {
                   // from normal/index
-                  inputSetRef(ref)
+                  inputSetRef.current = ref
                   // from suggestors/index
                   inputRef.current = ref
                 }}
@@ -451,7 +459,7 @@ const PlatformInput = (p: Props) => {
       </KeyEventHandler>
     </>
   )
-}
+})
 
 const styles = Styles.styleSheetCreate(
   () =>
@@ -555,11 +563,5 @@ const styles = Styles.styleSheetCreate(
       },
     } as const)
 )
-
-const HoverBox = Styles.styled(Kb.Box)(() => ({
-  ':hover .timer, &.expanded .timer': {
-    color: Styles.globalColors.black,
-  },
-}))
 
 export default PlatformInput

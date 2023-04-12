@@ -1,8 +1,7 @@
-/* eslint-disable react/no-did-mount-set-state */
 import * as React from 'react'
 import * as Kb from '../../../common-adapters'
 import * as Styles from '../../../styles'
-import UnfurlImage from '../messages/wrapper/unfurl/image'
+import UnfurlImage from '../messages/text/unfurl/unfurl-list/image'
 import {getMargins, scaledWidth} from './width'
 import type {Props} from '.'
 

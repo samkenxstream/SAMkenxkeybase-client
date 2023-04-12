@@ -1,23 +1,23 @@
-import * as React from 'react'
 import * as WalletsGen from '../../../../actions/wallets-gen'
 import * as Container from '../../../../util/container'
 import * as Constants from '../../../../constants/chat2'
 import * as Kb from '../../../../common-adapters'
 import * as Styles from '../../../../styles'
 import type * as Types from '../../../../constants/types/chat2'
+import shallowEqual from 'shallowequal'
 
 export type WalletsIconProps = {
   conversationIDKey: Types.ConversationIDKey
   size: number
   style?: Styles.StylesCrossPlatform
 }
-const WalletsIcon = (props: WalletsIconProps & Kb.OverlayParentProps) => {
+const WalletsIcon = (props: WalletsIconProps) => {
   const {size, style, conversationIDKey} = props
-  const {setAttachmentRef, toggleShowingMenu, getAttachmentRef, showingMenu} = props
-  const you = Container.useSelector(state => state.config.username)
-  const participantInfo = Container.useSelector(state =>
-    Constants.getParticipantInfo(state, conversationIDKey)
-  )
+  const {participantInfo, you} = Container.useSelector(state => {
+    const you = state.config.username
+    const participantInfo = Constants.getParticipantInfo(state, conversationIDKey)
+    return {participantInfo, you}
+  }, shallowEqual)
   const otherParticipants = participantInfo.name.filter(u => u !== you)
   const to = otherParticipants[0]
   const dispatch = Container.useDispatch()
@@ -27,24 +27,29 @@ const WalletsIcon = (props: WalletsIconProps & Kb.OverlayParentProps) => {
   const onSend = () => {
     dispatch(WalletsGen.createOpenSendRequestForm({isRequest: false, recipientType: 'keybaseUser', to}))
   }
+
+  const {toggleShowingPopup, showingPopup, popup, popupAnchor} = Kb.usePopup(attachTo => (
+    <Kb.FloatingMenu
+      closeOnSelect={true}
+      attachTo={attachTo}
+      items={[
+        {icon: 'iconfont-stellar-send', onClick: onSend, title: 'Send Lumens (XLM)'},
+        {icon: 'iconfont-stellar-request', onClick: onRequest, title: 'Request Lumens (XLM)'},
+      ]}
+      onHidden={toggleShowingPopup}
+      position="top right"
+      visible={showingPopup}
+    />
+  ))
+
   return (
     <Kb.Box2
-      ref={setAttachmentRef}
+      ref={popupAnchor}
       direction="horizontal"
       style={Styles.collapseStyles([styles.container, style])}
     >
-      <Kb.Icon type="iconfont-dollar-sign" fontSize={size} onClick={toggleShowingMenu} />
-      <Kb.FloatingMenu
-        closeOnSelect={true}
-        attachTo={getAttachmentRef}
-        items={[
-          {icon: 'iconfont-stellar-send', onClick: onSend, title: 'Send Lumens (XLM)'},
-          {icon: 'iconfont-stellar-request', onClick: onRequest, title: 'Request Lumens (XLM)'},
-        ]}
-        onHidden={toggleShowingMenu}
-        position="top right"
-        visible={showingMenu}
-      />
+      <Kb.Icon type="iconfont-dollar-sign" fontSize={size} onClick={toggleShowingPopup} />
+      {popup}
     </Kb.Box2>
   )
 }
@@ -88,4 +93,4 @@ const styles = Styles.styleSheetCreate(
     } as const)
 )
 
-export default Kb.OverlayParentHOC(WalletsIcon)
+export default WalletsIcon

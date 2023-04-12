@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"sort"
@@ -241,7 +240,7 @@ func (h *Server) MarkAsReadLocal(ctx context.Context, arg chat1.MarkAsReadLocalA
 			Offline: h.G().InboxSource.IsOffline(ctx),
 		}, nil
 	}
-	if err = h.G().InboxSource.MarkAsRead(ctx, arg.ConversationID, uid, arg.MsgID); err != nil {
+	if err = h.G().InboxSource.MarkAsRead(ctx, arg.ConversationID, uid, arg.MsgID, arg.ForceUnread); err != nil {
 		switch err {
 		case utils.ErrGetUnverifiedConvNotFound, utils.ErrGetVerifiedConvNotFound:
 			// if we couldn't find the conv, then just act like it worked
@@ -1212,7 +1211,7 @@ func (h *Server) MakeUploadTempFile(ctx context.Context, arg chat1.MakeUploadTem
 	if res, err = h.G().AttachmentUploader.GetUploadTempFile(ctx, arg.OutboxID, arg.Filename); err != nil {
 		return res, err
 	}
-	return res, ioutil.WriteFile(res, arg.Data, 0644)
+	return res, os.WriteFile(res, arg.Data, 0644)
 }
 
 func (h *Server) CancelUploadTempFile(ctx context.Context, outboxID chat1.OutboxID) (err error) {
@@ -3900,7 +3899,7 @@ func (h *Server) ForwardMessage(ctx context.Context, arg chat1.ForwardMessageArg
 				TlfName:           dstConv.Info.TlfName,
 				Visibility:        dstConv.Info.Visibility,
 				Filename:          sink.Name(),
-				Title:             "",
+				Title:             arg.Title,
 				Metadata:          mbod.Metadata,
 				IdentifyBehavior:  arg.IdentifyBehavior,
 				EphemeralLifetime: ephemeralLifetime,
@@ -3976,7 +3975,7 @@ func (h *Server) ForwardMessageNonblock(ctx context.Context, arg chat1.ForwardMe
 				TlfName:           dstConv.Info.TlfName,
 				Visibility:        dstConv.Info.Visibility,
 				Filename:          sink.Name(),
-				Title:             "",
+				Title:             arg.Title,
 				Metadata:          mbod.Metadata,
 				IdentifyBehavior:  arg.IdentifyBehavior,
 				EphemeralLifetime: ephemeralLifetime,

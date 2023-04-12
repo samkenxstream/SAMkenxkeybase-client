@@ -6,7 +6,7 @@ import * as RPCChatGen from '../../constants/types/rpc-chat-gen'
 import * as Container from '../../util/container'
 import * as ChatTypes from '../../constants/types/chat2'
 import * as ChatConstants from '../../constants/chat2'
-import {EmojiPickerDesktop} from '../../chat/conversation/messages/react-button/emoji-picker/container'
+import {EmojiPickerDesktop} from '../../chat/emoji-picker/container'
 import {
   type EmojiData,
   type RenderableEmoji,
@@ -153,12 +153,12 @@ const ChooseEmoji = Styles.isMobile
       return <Kb.Button mode="Secondary" label="Choose emoji" onClick={openEmojiPicker} />
     }
   : (props: ChooseEmojiProps) => {
-      const {popup, popupAnchor, setShowingPopup} = Kb.usePopup(attachTo => (
+      const {popup, popupAnchor, toggleShowingPopup} = Kb.usePopup(attachTo => (
         <Kb.FloatingBox
           attachTo={attachTo}
           containerStyle={{paddingTop: Styles.globalMargins.tiny}}
           position="bottom left"
-          onHidden={() => setShowingPopup(false)}
+          onHidden={toggleShowingPopup}
           propagateOutsideClicks={false}
         >
           <EmojiPickerDesktop
@@ -166,19 +166,14 @@ const ChooseEmoji = Styles.isMobile
             hideFrequentEmoji={true}
             small={true}
             onPickAction={props.onChoose}
-            onDidPick={() => setShowingPopup(false)}
+            onDidPick={toggleShowingPopup}
             onlyTeamCustomEmoji={true}
           />
         </Kb.FloatingBox>
       ))
       return (
         <>
-          <Kb.Button
-            mode="Secondary"
-            label="Choose emoji"
-            ref={popupAnchor}
-            onClick={() => setShowingPopup(true)}
-          />
+          <Kb.Button mode="Secondary" label="Choose emoji" ref={popupAnchor} onClick={toggleShowingPopup} />
           {popup}
         </>
       )

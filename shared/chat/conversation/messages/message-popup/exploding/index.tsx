@@ -4,7 +4,6 @@ import * as Styles from '../../../../../styles'
 import {formatTimeForPopup, formatTimeForRevoked, msToDHMS} from '../../../../../util/timestamp'
 import {addTicker, removeTicker, type TickerID} from '../../../../../util/second-timer'
 import {type DeviceType} from '../../../../../constants/types/devices'
-import {type Position} from '../../../../../common-adapters/relative-popup-hoc.types'
 
 const headerIconType = Styles.isMobile ? 'icon-fancy-bomb-mobile-226-96' : 'icon-fancy-bomb-desktop-150-72'
 const headerIconHeight = Styles.isMobile ? 96 : 72
@@ -20,7 +19,7 @@ type Props = {
   hideTimer: boolean
   items: Kb.MenuItems
   onHidden: () => void
-  position: Position
+  position: Styles.Position
   style?: Styles.StylesCrossPlatform
   timestamp: number
   visible: boolean
@@ -51,8 +50,6 @@ class ExplodingPopupHeader extends React.Component<Props, State> {
     const now = __STORYBOOK__ ? 1999999999000 : Date.now()
     let secondsLeft = Math.floor((this.props.explodesAt - now) / 1000)
     if (secondsLeft < 0) {
-      // TODO remove if we end up w/ an "exploded" popup
-      this.props.onHidden()
       secondsLeft = 0
     }
     return secondsLeft
@@ -177,9 +174,12 @@ const ExplodingPopupMenu = (props: Props) => {
       positionFallbacks={[]}
       containerStyle={props.style}
       visible={props.visible}
+      safeProviderStyle={safeProviderStyle}
     />
   )
 }
+
+const safeProviderStyle = {flex: 1} as const
 
 const oneMinuteInS = 60
 

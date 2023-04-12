@@ -1,6 +1,5 @@
 import * as Container from '../util/container'
 import * as RouteTreeGen from '../actions/route-tree-gen'
-import * as React from 'react'
 import * as Styles from '../styles'
 import * as Kb from '../common-adapters'
 import {version} from '../constants/platform'
@@ -13,7 +12,7 @@ const About = () => {
         path: [
           {
             props: {title: 'Privacy Policy', url: 'https://keybase.io/_/webview/privacypolicy'},
-            selected: 'privacyPolicy',
+            selected: 'webLinks',
           },
         ],
       })
@@ -24,7 +23,7 @@ const About = () => {
         path: [
           {
             props: {title: 'Terms', url: 'https://keybase.io/_/webview/terms'},
-            selected: 'terms',
+            selected: 'webLinks',
           },
         ],
       })
@@ -50,11 +49,6 @@ const About = () => {
     </Kb.Box2>
   )
 }
-About.navigationOptions = {
-  header: undefined,
-  title: 'About',
-}
-
 const styles = Styles.styleSheetCreate(() => ({
   container: {
     alignItems: 'center',

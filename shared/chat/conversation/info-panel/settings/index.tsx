@@ -4,7 +4,7 @@ import * as RPCChatTypes from '../../../../constants/types/rpc-chat-gen'
 import * as Chat2Gen from '../../../../actions/chat2-gen'
 import * as RouteTreeGen from '../../../../actions/route-tree-gen'
 import * as Container from '../../../../util/container'
-import * as Types from '../../../../constants/types/chat2'
+import type * as Types from '../../../../constants/types/chat2'
 import * as Constants from '../../../../constants/chat2'
 import * as Kb from '../../../../common-adapters'
 import * as Styles from '../../../../styles'
@@ -81,24 +81,25 @@ const SettingsPanel = (props: SettingsPanelProps) => {
 
   const onLeaveConversation = () => dispatch(Chat2Gen.createLeaveConversation({conversationIDKey}))
 
+  const showDangerZone = canDeleteHistory || entityType === 'adhoc' || entityType !== 'channel'
+
   return (
-    <Kb.Box2
-      direction="vertical"
-      fullWidth={true}
-      fullHeight={true}
-      alignItems="flex-start"
-      style={styles.settingsContainer}
-    >
-      <Kb.ScrollView>
+    <Kb.ScrollView>
+      <Kb.Box2
+        direction="vertical"
+        fullWidth={true}
+        alignItems="flex-start"
+        style={styles.container}
+        gap="tiny"
+      >
         {isPreview ? (
-          <Kb.Box2 direction="vertical" fullWidth={true} style={styles.settingsHeader}>
+          <Kb.Box2 direction="vertical" fullWidth={true}>
             <Kb.Text type="BodySmallSemibold">You are not in this channel.</Kb.Text>
             <Kb.Button type="Success" mode="Primary" label="Join channel" style={styles.buttonStyle} />
           </Kb.Box2>
         ) : (
           <Notifications conversationIDKey={conversationIDKey} />
         )}
-
         {entityType === 'channel' && channelname !== 'general' && !isPreview && (
           <Kb.Button
             type="Default"
@@ -111,13 +112,8 @@ const SettingsPanel = (props: SettingsPanelProps) => {
             iconColor={Styles.globalColors.blue}
           />
         )}
-
-        <Kb.Text type="Header" style={styles.settingsHeader}>
-          Conversation
-        </Kb.Text>
-
+        <Kb.Text type="Header">Conversation</Kb.Text>
         <RetentionPicker
-          containerStyle={styles.retentionContainerStyle}
           conversationIDKey={['adhoc', 'channel'].includes(entityType) ? conversationIDKey : undefined}
           dropdownStyle={styles.retentionDropdownStyle}
           entityType={entityType}
@@ -128,50 +124,51 @@ const SettingsPanel = (props: SettingsPanelProps) => {
           <MinWriterRole conversationIDKey={conversationIDKey} />
         )}
 
-        <Kb.Box2 direction="vertical" fullWidth={true} style={styles.section} gap="small">
-          <Kb.Text type="BodySmallSemibold">Danger zone</Kb.Text>
-
-          {canDeleteHistory && (
-            <Kb.Button
-              type="Danger"
-              mode="Secondary"
-              label="Clear entire conversation"
-              onClick={onShowClearConversationDialog}
-            />
-          )}
-          {entityType === 'adhoc' && (
-            <Kb.Button
-              type="Danger"
-              mode="Primary"
-              label="Block"
-              onClick={onShowBlockConversationDialog}
-              icon="iconfont-remove"
-              iconColor={Styles.globalColors.red}
-            />
-          )}
-          {entityType !== 'channel' &&
-            (ignored ? (
+        {showDangerZone ? (
+          <Kb.Box2 direction="vertical" fullWidth={true} gap="tiny">
+            <Kb.Text type="BodySmallSemibold">Danger zone</Kb.Text>
+            {canDeleteHistory && (
               <Kb.Button
                 type="Danger"
                 mode="Secondary"
-                label="Unhide this conversation"
-                onClick={onUnhideConv}
-                icon="iconfont-unhide"
-                iconColor={Styles.globalColors.red}
+                label="Clear entire conversation"
+                onClick={onShowClearConversationDialog}
               />
-            ) : (
+            )}
+            {entityType === 'adhoc' && (
               <Kb.Button
                 type="Danger"
-                mode="Secondary"
-                label="Hide this conversation"
-                onClick={onHideConv}
-                icon="iconfont-unhide"
+                mode="Primary"
+                label="Block"
+                onClick={onShowBlockConversationDialog}
+                icon="iconfont-remove"
                 iconColor={Styles.globalColors.red}
               />
-            ))}
-        </Kb.Box2>
-      </Kb.ScrollView>
-    </Kb.Box2>
+            )}
+            {entityType !== 'channel' &&
+              (ignored ? (
+                <Kb.Button
+                  type="Danger"
+                  mode="Secondary"
+                  label="Unhide this conversation"
+                  onClick={onUnhideConv}
+                  icon="iconfont-unhide"
+                  iconColor={Styles.globalColors.red}
+                />
+              ) : (
+                <Kb.Button
+                  type="Danger"
+                  mode="Secondary"
+                  label="Hide this conversation"
+                  onClick={onHideConv}
+                  icon="iconfont-unhide"
+                  iconColor={Styles.globalColors.red}
+                />
+              ))}
+          </Kb.Box2>
+        ) : null}
+      </Kb.Box2>
+    </Kb.ScrollView>
   )
 }
 
@@ -183,14 +180,7 @@ const styles = Styles.styleSheetCreate(
         marginBottom: Styles.globalMargins.small,
         marginTop: Styles.globalMargins.small,
       },
-      retentionContainerStyle: Styles.platformStyles({
-        common: {
-          paddingLeft: 16,
-          paddingRight: 16,
-          paddingTop: 8,
-        },
-        isMobile: {marginRight: 16},
-      }),
+      container: {padding: Styles.globalMargins.small},
       retentionDropdownStyle: Styles.platformStyles({
         isElectron: {
           marginRight: 45 - 16,
@@ -198,24 +188,6 @@ const styles = Styles.styleSheetCreate(
         },
         isMobile: {width: '100%'},
       }),
-      section: {
-        paddingLeft: Styles.globalMargins.small,
-        paddingRight: Styles.globalMargins.small,
-      },
-      settingsContainer: Styles.platformStyles({
-        common: {
-          flex: 1,
-          height: '100%',
-          paddingBottom: Styles.globalMargins.small,
-          paddingTop: Styles.globalMargins.small,
-        },
-        isTablet: {alignSelf: 'center', maxWidth: 600},
-      }),
-      settingsHeader: {
-        display: 'flex',
-        paddingLeft: Styles.globalMargins.small,
-        paddingRight: Styles.globalMargins.small,
-      },
       smallButton: {
         marginBottom: Styles.globalMargins.medium,
         marginLeft: Styles.globalMargins.small,

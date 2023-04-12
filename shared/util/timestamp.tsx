@@ -5,26 +5,38 @@ import {uses24HourClock} from '../constants/platform'
 const hourMinuteString = uses24HourClock ? 'HH:mm' : 'h:mm a'
 const hourMinuteSecondString = uses24HourClock ? 'HH:mm:ss' : 'h:mm:ss a'
 
+// getting this time is very slow on android so we cache it, it never grows large
+const chatTimeCache = new Map<number, string>()
+let cacheData = dateFns.startOfDay(new Date())
 export function formatTimeForChat(time: number): string | null {
-  const m = new Date(time)
+  // if the date changes, clear our cache as the 'yesterday' stuff is actually sensitive to this
+  if (!dateFns.isToday(cacheData)) {
+    chatTimeCache.clear()
+  }
+  let t = chatTimeCache.get(time)
+  if (t !== undefined) return t
+  const m = time
   const hma = dateFns.format(m, hourMinuteString)
-  const now = new Date()
-  const today = dateFns.startOfToday()
-  if (dateFns.isSameDay(now, m)) {
-    return hma
+  if (dateFns.isToday(m)) {
+    t = hma
+  } else if (dateFns.isYesterday(m)) {
+    t = `${hma} - Yesterday`
+  } else {
+    const today = dateFns.startOfToday()
+    const lastWeek = dateFns.sub(today, {days: 7})
+    if (dateFns.isAfter(m, lastWeek)) {
+      t = `${hma} - ${dateFns.format(m, 'EEE')}`
+    } else {
+      const lastMonth = dateFns.sub(today, {months: 1})
+      if (dateFns.isAfter(m, lastMonth)) {
+        t = `${hma} - ${dateFns.format(m, 'd MMM')}`
+      } else {
+        t = `${hma} - ${dateFns.format(m, 'd MMM yy')}`
+      }
+    }
   }
-  if (dateFns.isSameDay(dateFns.startOfYesterday(), m)) {
-    return `${hma} - Yesterday`
-  }
-  const lastWeek = dateFns.sub(today, {days: 7})
-  if (dateFns.isAfter(m, lastWeek)) {
-    return `${hma} - ${dateFns.format(m, 'EEE')}`
-  }
-  const lastMonth = dateFns.sub(today, {months: 1})
-  if (dateFns.isAfter(m, lastMonth)) {
-    return `${hma} - ${dateFns.format(m, 'd MMM')}`
-  }
-  return `${hma} - ${dateFns.format(m, 'd MMM yy')}`
+  chatTimeCache.set(time, t)
+  return t
 }
 
 export function formatTimeForConversationList(time: number, nowOverride?: number | null): string {

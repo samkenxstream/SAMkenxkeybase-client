@@ -2,7 +2,6 @@ import * as Kb from '../common-adapters'
 import * as Styles from '../styles'
 import * as Common from '../router-v2/common'
 import * as Constants from '../constants/settings'
-import * as React from 'react'
 import * as Shim from '../router-v2/shim'
 import LeftNav from './sub-nav/left-nav'
 import {useNavigationBuilder, TabRouter, createNavigatorFactory} from '@react-navigation/core'
@@ -21,7 +20,7 @@ function LeftTabNavigator({initialRouteName, children, screenOptions, backBehavi
   })
 
   const selectedTab = state.routes[state.index]?.name ?? ''
-  const onSelectTab = Common.useSubnavTabAction(navigation, state)
+  const onSelectTab = Common.useSubnavTabAction(navigation as any, state)
 
   return (
     <NavigationContent>

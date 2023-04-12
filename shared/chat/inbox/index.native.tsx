@@ -1,12 +1,9 @@
+import * as Constants from '../../constants/chat2'
+import * as Container from '../../util/container'
 import * as Kb from '../../common-adapters/mobile.native'
 import * as React from 'react'
 import * as RowSizes from './row/sizes'
 import * as Styles from '../../styles'
-import type * as T from './index.d'
-import type * as Types from '../../constants/types/chat2'
-import {anyWaiting} from '../../constants/waiting'
-import * as Container from '../../util/container'
-import * as Constants from '../../constants/chat2'
 import BigTeamsDivider from './row/big-teams-divider'
 import BuildTeam from './row/build-team'
 import ChatInboxHeader from './header/container'
@@ -14,13 +11,18 @@ import InboxSearch from '../inbox-search/container'
 import TeamsDivider from './row/teams-divider'
 import UnreadShortcut from './unread-shortcut'
 import debounce from 'lodash/debounce'
-import {makeRow} from './row'
-import {virtualListMarks} from '../../local-debug'
-import type {ViewToken, ListRenderItemInfo} from 'react-native'
 import shallowEqual from 'shallowequal'
-import noop from 'lodash/noop'
+import type * as T from './index.d'
+import type * as Types from '../../constants/types/chat2'
+import {type ViewToken, FlatList} from 'react-native'
+import {FlashList, type ListRenderItemInfo} from '@shopify/flash-list'
+import {anyWaiting} from '../../constants/waiting'
+import {makeRow} from './row'
 
 type RowItem = Types.ChatInboxRowItem
+
+const usingFlashList = false
+const List = usingFlashList ? FlashList : FlatList
 
 const NoChats = (props: {onNewChat: () => void}) => (
   <>
@@ -54,16 +56,20 @@ type State = {
 }
 
 class Inbox extends React.PureComponent<T.Props, State> {
-  private listRef = React.createRef<Kb.NativeFlatList<RowItem>>()
-  // Help us calculate row heights and offsets quickly
-  private dividerIndex: number = -1
-  // 2 different sizes
-  private dividerShowButton: boolean = false
+  // used to close other rows
+  private swipeCloseRef = React.createRef<() => void>()
+  private listRef = React.createRef<FlashList<RowItem> | FlatList<RowItem>>()
   // stash first offscreen index for callback
   private firstOffscreenIdx: number = -1
   private lastVisibleIdx: number = -1
 
   state = {showFloating: false, showUnread: false, unreadCount: 0}
+
+  componentWillUnmount(): void {
+    this.swipeCloseRef.current?.()
+    // @ts-ignore
+    this.swipeCloseRef.current = null
+  }
 
   componentDidUpdate(prevProps: T.Props) {
     if (
@@ -84,7 +90,6 @@ class Inbox extends React.PureComponent<T.Props, State> {
     if (row.type === 'divider') {
       element = (
         <TeamsDivider
-          key="divider"
           showButton={row.showButton}
           toggle={this.props.toggleSmallTeamsExpanded}
           rows={this.props.rows}
@@ -94,29 +99,27 @@ class Inbox extends React.PureComponent<T.Props, State> {
     } else if (row.type === 'teamBuilder') {
       element = <BuildTeam />
     } else {
-      element = makeRow(row, this.props.navKey)
-    }
-
-    if (virtualListMarks) {
-      return <Kb.Box style={{backgroundColor: 'purple', overflow: 'hidden'}}>{element}</Kb.Box>
+      element = makeRow(row, this.props.navKey, this.swipeCloseRef)
     }
 
     return element
   }
 
-  private keyExtractor = (item: RowItem) => {
+  private keyExtractor = (item: RowItem, idx: number) => {
     const row = item
-
-    if (row.type === 'divider' || row.type === 'bigTeamsLabel' || row.type === 'teamBuilder') {
-      return row.type
+    switch (row.type) {
+      case 'divider': // fallthrough
+      case 'teamBuilder': // fallthrough
+      case 'bigTeamsLabel':
+        return row.type
+      case 'small': // fallthrough
+      case 'big':
+        return row.conversationIDKey
+      case 'bigHeader':
+        return row.teamname
+      default:
+        return String(idx)
     }
-
-    return (
-      (row.type === 'small' && row.conversationIDKey) ||
-      (row.type === 'bigHeader' && row.teamname) ||
-      (row.type === 'big' && row.conversationIDKey) ||
-      'missingkey'
-    )
   }
 
   private askForUnboxing = (rows: Array<RowItem>) => {
@@ -204,43 +207,39 @@ class Inbox extends React.PureComponent<T.Props, State> {
     }
   }, 1000)
 
-  private getItemLayout = (data: null | Array<RowItem> | undefined, index: number) => {
-    // We cache the divider location so we can divide the list into small and large. We can calculate the small cause they're all
-    // the same height. We iterate over the big since that list is small and we don't know the number of channels easily
-    const smallHeight = RowSizes.smallRowHeight
-    if (index < this.dividerIndex || this.dividerIndex === -1) {
-      const offset = index ? smallHeight * index : 0
-      const length = smallHeight
-      return {index, length, offset}
-    }
+  private getItemType = (item: RowItem) => {
+    return item.type
+  }
 
-    const dividerHeight = RowSizes.dividerHeight(this.dividerShowButton)
-    if (index === this.dividerIndex) {
-      const offset = smallHeight * index
-      const length = dividerHeight
-      return {index, length, offset}
+  private overrideItemLayout = (layout: {span?: number; size?: number}, item: RowItem) => {
+    switch (item.type) {
+      case 'small':
+        layout.size = RowSizes.smallRowHeight
+        break
+      case 'bigTeamsLabel':
+        layout.size = 32
+        break
+      case 'bigHeader':
+        layout.size = RowSizes.bigHeaderHeight
+        break
+      case 'big':
+        layout.size = RowSizes.bigRowHeight
+        break
+      case 'divider':
+        layout.size = 68
+        break
+      case 'teamBuilder':
+        layout.size = 120
+        break
     }
-
-    let offset = smallHeight * this.dividerIndex + dividerHeight
-    let i = this.dividerIndex + 1
-
-    for (; i < index; ++i) {
-      const h = data?.[i].type === 'big' ? RowSizes.bigRowHeight : RowSizes.bigHeaderHeight
-      offset += h
-    }
-    const length = data?.[i].type === 'big' ? RowSizes.bigRowHeight : RowSizes.bigHeaderHeight
-    return {index, length, offset}
   }
 
   render() {
-    this.dividerShowButton = false
-    this.dividerIndex = this.props.rows.findIndex(r => {
-      if (r.type === 'divider') {
-        this.dividerShowButton = r.showButton
-        return true
-      }
-      return false
-    })
+    const debugWhichList = __DEV__ ? (
+      <Kb.Text type="HeaderBig" style={{backgroundColor: 'red', left: 0, position: 'absolute', top: 0}}>
+        {usingFlashList ? 'FLASH' : 'old'}
+      </Kb.Text>
+    ) : null
 
     const noChats = !this.props.neverLoaded && !this.props.isSearching && !this.props.rows.length && (
       <NoChats onNewChat={this.props.onNewChat} />
@@ -248,6 +247,9 @@ class Inbox extends React.PureComponent<T.Props, State> {
     const floatingDivider = this.state.showFloating &&
       !this.props.isSearching &&
       this.props.allowShowFloatingButton && <BigTeamsDivider toggle={this.props.toggleSmallTeamsExpanded} />
+
+    const HeadComponent = <ChatInboxHeader headerContext="inbox-header" />
+
     return (
       <Kb.ErrorBoundary>
         <Kb.Box style={styles.container}>
@@ -257,18 +259,20 @@ class Inbox extends React.PureComponent<T.Props, State> {
               <InboxSearch header={HeadComponent} />
             </Kb.Box2>
           ) : (
-            <Kb.NativeFlatList
-              overScrollMode="never"
+            <List
+              disableAutoLayout={true}
               ListHeaderComponent={HeadComponent}
               data={this.props.rows}
+              estimatedItemSize={64}
+              getItemType={this.getItemType}
               keyExtractor={this.keyExtractor}
-              renderItem={this.renderItem}
-              ref={this.listRef}
-              onViewableItemsChanged={this.onViewChanged}
-              windowSize={5}
               keyboardShouldPersistTaps="handled"
-              getItemLayout={this.getItemLayout}
-              onScrollToIndexFailed={noop}
+              onViewableItemsChanged={this.onViewChanged}
+              overScrollMode="never"
+              overrideItemLayout={this.overrideItemLayout}
+              ref={this.listRef}
+              removeClippedSubviews={Styles.isAndroid}
+              renderItem={this.renderItem}
             />
           )}
           {noChats}
@@ -277,6 +281,7 @@ class Inbox extends React.PureComponent<T.Props, State> {
           {this.state.showUnread && !this.props.isSearching && !this.state.showFloating && (
             <UnreadShortcut onClick={this.scrollToUnread} unreadCount={this.state.unreadCount} />
           )}
+          {debugWhichList}
         </Kb.Box>
       </Kb.ErrorBoundary>
     )
@@ -298,7 +303,6 @@ const LoadingLine = () => {
     </Kb.Box>
   ) : null
 }
-const HeadComponent = <ChatInboxHeader context="inbox-header" />
 
 const styles = Styles.styleSheetCreate(
   () =>
@@ -313,12 +317,12 @@ const styles = Styles.styleSheetCreate(
         common: {
           ...Styles.globalStyles.flexBoxColumn,
           backgroundColor: Styles.globalColors.fastBlank,
-          flexShrink: 1,
+          flexGrow: 1,
           position: 'relative',
         },
         isTablet: {
           backgroundColor: Styles.globalColors.blueGrey,
-          width: Styles.globalStyles.mediumSubNavWidth,
+          maxWidth: Styles.globalStyles.mediumSubNavWidth,
         },
       }),
       loadingContainer: {

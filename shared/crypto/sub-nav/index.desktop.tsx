@@ -1,4 +1,3 @@
-import * as React from 'react'
 import * as Styles from '../../styles'
 import * as Kb from '../../common-adapters'
 import * as Constants from '../../constants/crypto'
@@ -31,7 +30,7 @@ function LeftTabNavigator({initialRouteName, children, screenOptions, backBehavi
   })
 
   const selectedTab = state.routes[state.index]?.name ?? ''
-  const onSelectTab = Common.useSubnavTabAction(navigation, state)
+  const onSelectTab = Common.useSubnavTabAction(navigation as any, state)
 
   return (
     <NavigationContent>
@@ -79,9 +78,5 @@ const CryptoSubNavigator = () => (
     ))}
   </TabNavigator.Navigator>
 )
-
-CryptoSubNavigator.navigationOptions = {
-  title: 'Crypto tools',
-}
 
 export default CryptoSubNavigator

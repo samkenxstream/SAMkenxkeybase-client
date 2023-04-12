@@ -1,10 +1,10 @@
 import * as React from 'react'
-import {StylesCrossPlatform} from '../styles'
+import * as Styles from '../styles'
 
 export type Props = {
   className?: string
   children?: any
-  style?: StylesCrossPlatform
+  style?: Styles.StylesCrossPlatform
   onClick?: (event: React.BaseSyntheticEvent) => void
   onDoubleClick?: (event: React.BaseSyntheticEvent) => void
   onPress?: void
@@ -28,4 +28,18 @@ export type Props = {
 }
 
 declare class ClickableBox extends React.Component<Props> {}
+
+export type Props2 = {
+  // mobile only
+  onLongPress?: () => void
+  // desktop only
+  onMouseOver?: (event: React.MouseEvent) => void
+
+  onClick?: (event: React.BaseSyntheticEvent) => void
+  children: React.ReactNode
+  className?: string
+  style?: Styles.StylesCrossPlatform
+}
+export declare class ClickableBox2 extends React.Component<Props2> {}
+
 export default ClickableBox

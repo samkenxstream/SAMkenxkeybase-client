@@ -33,14 +33,6 @@ class ExplodingHeightRetainer extends React.PureComponent<Props, State> {
     return nextProps.retainHeight ? null : {children: copyChildren(nextProps.children)}
   }
 
-  componentDidMount() {
-    // remeasure if we are already exploded
-    if (this.props.retainHeight && retainedHeights.has(this.props.messageKey) && this.props.measure) {
-      retainedHeights.delete(this.props.messageKey)
-      this.props.measure()
-    }
-  }
-
   componentDidUpdate(prevProps: Props) {
     if (this.props.retainHeight) {
       if (!prevProps.retainHeight) {
@@ -59,7 +51,7 @@ class ExplodingHeightRetainer extends React.PureComponent<Props, State> {
     this.setHeight()
   }
 
-  setHeight() {
+  private setHeight() {
     const node = this._boxRef.current
     if (node instanceof HTMLElement) {
       const height = node.clientHeight
@@ -72,6 +64,11 @@ class ExplodingHeightRetainer extends React.PureComponent<Props, State> {
 
   componentWillUnmount() {
     this.timerID && SharedTimer.removeObserver(this.props.messageKey, this.timerID)
+  }
+
+  private _setBoxRef = (r: HTMLDivElement | null) => {
+    this._boxRef = {current: r}
+    this.setHeight()
   }
 
   render() {
@@ -88,7 +85,7 @@ class ExplodingHeightRetainer extends React.PureComponent<Props, State> {
             position: 'relative',
           },
         ])}
-        forwardedRef={this._boxRef}
+        forwardedRef={this._setBoxRef}
       >
         {this.state.children}
         <Ashes
@@ -124,11 +121,12 @@ const Ashes = (props: {doneExploding: boolean; exploded: boolean; explodedBy?: s
       </Kb.Text>
     )
   }
+
   return (
-    <AshBox className={Styles.classNames({'full-width': props.exploded})}>
+    <div className={Styles.classNames('ashbox', {'full-width': props.exploded})} style={styles.ashBox as any}>
       {props.exploded && explodedTag}
       <FlameFront height={props.height} stop={props.doneExploding} />
-    </AshBox>
+    </div>
   )
 }
 
@@ -172,11 +170,8 @@ const styles = Styles.styleSheetCreate(
           backgroundSize: '400px 68px',
           bottom: 0,
           left: 0,
-          overflow: 'hidden',
           position: 'absolute',
           top: 0,
-          transition: `width 0s`,
-          width: 0,
         },
       }),
       container: {...Styles.globalStyles.flexBoxColumn, flex: 1},
@@ -203,17 +198,6 @@ const styles = Styles.styleSheetCreate(
         width: 64,
       },
     } as const)
-)
-
-const AshBox = Styles.styled.div(
-  {
-    '&.full-width': {
-      overflow: 'visible',
-      transition: `width ${animationDuration}ms linear`,
-      width: '100%',
-    },
-  },
-  () => styles.ashBox as any
 )
 
 export default ExplodingHeightRetainer

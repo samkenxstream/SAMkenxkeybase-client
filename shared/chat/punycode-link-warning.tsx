@@ -1,4 +1,3 @@
-import React from 'react'
 import * as Kb from '../common-adapters'
 import * as Container from '../util/container'
 import * as Styles from '../styles'
@@ -16,7 +15,6 @@ const PunycodeLinkWarning = (props: PunycodeLinkWarningProps) => {
   const onCancel = () => dispatch(nav.safeNavigateUpPayload())
   const onConfirm = () => {
     openURL(url)
-
     dispatch(nav.safeNavigateUpPayload())
   }
   const description = `The link you clicked on appears to be ${display}, but actually points to ${punycode}.`

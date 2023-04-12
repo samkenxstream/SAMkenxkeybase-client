@@ -1,10 +1,9 @@
 import * as Common from '../router-v2/common'
 import * as Container from '../util/container'
 import * as Kb from '../common-adapters'
-import * as React from 'react'
 import * as Shim from '../router-v2/shim'
 import * as Styles from '../styles'
-import createNoDupeStackNavigator from '../router-v2/stack'
+import {createNativeStackNavigator} from '@react-navigation/native-stack'
 import type AccountReloaderType from './common/account-reloader'
 import type Wallet from './wallet/container'
 import type WalletListType from './wallet-list/container'
@@ -96,7 +95,7 @@ const WalletSubNavigator = () => (
   </TabNavigator.Navigator>
 )
 
-const RootStack = createNoDupeStackNavigator()
+const RootStack = createNativeStackNavigator()
 
 const WalletsRootNav = () => {
   const acceptedDisclaimer = Container.useSelector(state => state.wallets.acceptedDisclaimer)
@@ -110,27 +109,30 @@ const WalletsRootNav = () => {
           component={WalletSubNavigator}
           options={{
             ...Common.defaultNavigationOptions,
+            // @ts-ignore this is used by desktops implementation, TODO better typing / naming
             headerRightActions: () => <HeaderRightActions />,
-            headerTitle: () => <HeaderTitle />,
             ...(Container.isTablet
               ? {
                   headerLeftContainerStyle: {maxWidth: 0},
                   headerRightContainerStyle: {maxWidth: 0},
                   headerStyle: {height: 60},
-                  headerTitleContainerStyle: {
-                    ...Common.defaultNavigationOptions.headerTitleContainerStyle,
-                    alignSelf: 'stretch',
-                    marginHorizontal: 0,
-                    marginRight: 8,
-                    maxWidth: 9999,
-                  },
+                  headerTitle: () => (
+                    <Common.TabletWrapper>
+                      <Kb.Box2 fullWidth={true} direction="vertical">
+                        <HeaderTitle />
+                      </Kb.Box2>
+                    </Common.TabletWrapper>
+                  ),
+                  headerTitleContainerStyle: {},
                 }
-              : {}),
+              : {
+                  headerTitle: () => <HeaderTitle />,
+                }),
           }}
         />
       ) : (
         <RootStack.Screen
-          name="onboarding"
+          name="walletOnboarding"
           component={RoutedOnboarding}
           options={{header: () => null, headerTitle: ''}}
         />

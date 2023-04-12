@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as Styles from '../styles'
 import ScrollView from './scroll-view'
-import {Box2, Box, LayoutEvent} from './box'
+import {Box2, Box, type LayoutEvent} from './box'
 import BoxGrow from './box-grow'
 import Text from './text'
 import {useTimeout} from './use-timers'
@@ -33,7 +33,7 @@ type FooterProps = {
 }
 
 type Props = {
-  banners?: React.ReactNode[]
+  banners?: React.ReactNode
   children: React.ReactNode
   header?: HeaderProps
   footer?: FooterProps
@@ -43,11 +43,11 @@ const Modal2 = (props: Props) => {
   const {footer, header, banners, children} = props
   return (
     <>
-      {!!header && <Header2 {...header} />}
-      {!!banners && banners}
+      {header ? <Header2 {...header} /> : null}
+      {banners ? banners : null}
       {children}
       {/* TODO wide based on type? */}
-      {!!footer && <Footer {...footer} wide={true} />}
+      {footer ? <Footer {...footer} wide={true} /> : null}
     </>
   )
 }

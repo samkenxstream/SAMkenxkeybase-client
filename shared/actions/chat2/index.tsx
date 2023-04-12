@@ -25,14 +25,15 @@ import * as UsersGen from '../users-gen'
 import * as WaitingGen from '../waiting-gen'
 import * as WalletTypes from '../../constants/types/wallets'
 import * as WalletsGen from '../wallets-gen'
-import {commonListenActions, filterForNs} from '../team-building'
+import {findLast} from '../../util/arrays'
+import KB2 from '../../util/electron'
+import NotifyPopup from '../../util/notify-popup'
+import logger from '../../logger'
 import {RPCError} from '../../util/errors'
-import {NotifyPopup} from '../../native/notifications'
+import {commonListenActions, filterForNs} from '../team-building'
 import {isIOS} from '../../constants/platform'
 import {privateFolderWithUsers, teamFolder} from '../../constants/config'
 import {saveAttachmentToCameraRoll, showShareActionSheet} from '../platform-specific'
-import KB2 from '../../util/electron'
-import logger from '../../logger'
 
 const {darwinCopyToChatTempUploadFile} = KB2.functions
 
@@ -1160,7 +1161,7 @@ const loadMoreMessages = async (
       return arr
     }, [])
 
-    logger.info(`thread load ordinals ${messages.map(m => m.ordinal)}`)
+    // logger.info(`thread load ordinals ${messages.map(m => m.ordinal)}`)
 
     const moreToLoad = uiMessages.pagination ? !uiMessages.pagination.last : true
     listenerApi.dispatch(Chat2Gen.createUpdateMoreToLoad({conversationIDKey, moreToLoad}))
@@ -1267,12 +1268,21 @@ const getUnreadline = async (
       readMsgID: readMsgID < 0 ? 0 : readMsgID,
     })
     const unreadlineID = unreadlineRes.unreadlineID ? unreadlineRes.unreadlineID : 0
+    logger.info(`marking unreadline ${conversationIDKey} ${unreadlineID}`)
     listenerApi.dispatch(
       Chat2Gen.createUpdateUnreadline({
         conversationIDKey,
         messageID: Types.numberToMessageID(unreadlineID),
       })
     )
+    if (state.chat2.markedAsUnreadMap.get(conversationIDKey)) {
+      listenerApi.dispatch(
+        // Remove the force unread bit for the next time we view the thread.
+        Chat2Gen.createClearMarkAsUnread({
+          conversationIDKey,
+        })
+      )
+    }
   } catch (error) {
     if (error instanceof RPCError) {
       if (error.code === RPCTypes.StatusCode.scchatnotinteam) {
@@ -1419,8 +1429,6 @@ const messageEdit = async (
 
     if (!message.id) {
       listenerApi.dispatch(Chat2Gen.createPendingMessageWasEdited({conversationIDKey, ordinal, text}))
-    } else {
-      logger.warn('Editing non-text message')
     }
   }
 }
@@ -1907,23 +1915,37 @@ const confirmScreenResponse = (_: unknown, action: Chat2Gen.ConfirmScreenRespons
 
 // We always make adhoc convos and never preview it
 const previewConversationPersonMakesAConversation = (
-  _: unknown,
+  state: Container.TypedState,
   action: Chat2Gen.PreviewConversationPayload
 ) => {
-  const {participants, teamname} = action.payload
-  return (
-    !teamname &&
-    participants && [
-      Chat2Gen.createNavigateToThread({
-        conversationIDKey: Constants.pendingWaitingConversationIDKey,
-        reason: 'justCreated',
-      }),
-      Chat2Gen.createCreateConversation({
-        highlightMessageID: action.payload.highlightMessageID,
-        participants,
-      }),
-    ]
-  )
+  const {participants, teamname, reason, highlightMessageID} = action.payload
+  if (teamname) return false
+  if (!participants) return false
+
+  // if stellar just search first, could do others maybe
+  if ((reason === 'requestedPayment' || reason === 'sentPayment') && participants.length === 1) {
+    const username = state.config.username
+    const toFind = participants[0]
+    for (const [cid, p] of state.chat2.participantMap.entries()) {
+      if (p.name.length === 2) {
+        const other = p.name.filter(n => n !== username)
+        if (other[0] === toFind) {
+          return Chat2Gen.createNavigateToThread({
+            conversationIDKey: cid,
+            reason: 'justCreated',
+          })
+        }
+      }
+    }
+  }
+
+  return [
+    Chat2Gen.createNavigateToThread({
+      conversationIDKey: Constants.pendingWaitingConversationIDKey,
+      reason: 'justCreated',
+    }),
+    Chat2Gen.createCreateConversation({highlightMessageID, participants}),
+  ]
 }
 
 const findGeneralConvIDFromTeamID = async (
@@ -2056,39 +2078,6 @@ const startupInboxLoad = (state: Container.TypedState) =>
 const startupUserReacjisLoad = (_: unknown, action: ConfigGen.BootstrapStatusLoadedPayload) =>
   Chat2Gen.createUpdateUserReacjis({userReacjis: action.payload.userReacjis})
 
-// onUpdateUserReacjis hooks `userReacjis`, frequently used reactions
-// recorded by the service, into the emoji-mart library. Handler spec is
-// documented at
-// https://github.com/missive/emoji-mart/tree/7c2e2a840bdd48c3c9935dac4208115cbcf6006d#storage
-const onUpdateUserReacjis = (state: Container.TypedState) => {
-  if (Container.isMobile) {
-    return
-  }
-  const {userReacjis} = state.chat2
-  // emoji-mart expects a frequency map so we convert the sorted list from the
-  // service into a frequency map that will appease the lib.
-  let i = 0
-  const reacjis: {[key: string]: number} = {}
-  userReacjis.topReacjis.forEach(el => {
-    i++
-    reacjis[el.name] = userReacjis.topReacjis.length - i
-  })
-
-  const {store} = require('emoji-mart')
-  store.setHandlers({
-    getter: (key: 'frequently' | 'last' | 'skin') => {
-      switch (key) {
-        case 'frequently':
-          return reacjis
-        case 'last':
-          return reacjis[0]
-        case 'skin':
-          return userReacjis.skinTone
-      }
-    },
-  })
-}
-
 const openFolder = (state: Container.TypedState, action: Chat2Gen.OpenFolderPayload) => {
   const meta = Constants.getMeta(state, action.payload.conversationIDKey)
   const participantInfo = Constants.getParticipantInfo(state, action.payload.conversationIDKey)
@@ -2131,13 +2120,15 @@ const downloadAttachment = async (
 
 // Download an attachment to your device
 const attachmentDownload = async (
-  _: Container.TypedState,
+  state: Container.TypedState,
   action: Chat2Gen.AttachmentDownloadPayload,
   listenerApi: Container.ListenerApi
 ) => {
-  const {message} = action.payload
+  const {conversationIDKey, ordinal} = action.payload
 
-  if (message.type !== 'attachment') {
+  const message = state.chat2.messageMap.get(conversationIDKey)?.get(ordinal)
+
+  if (message?.type !== 'attachment') {
     throw new Error('Trying to download missing / incorrect message?')
   }
 
@@ -2150,20 +2141,18 @@ const attachmentDownload = async (
   await downloadAttachment(false, message, listenerApi)
 }
 
-const attachmentPreviewSelect = (_: unknown, action: Chat2Gen.AttachmentPreviewSelectPayload) => [
-  Chat2Gen.createAddToMessageMap({message: action.payload.message}),
+const attachmentPreviewSelect = (_: unknown, action: Chat2Gen.AttachmentPreviewSelectPayload) =>
   RouteTreeGen.createNavigateAppend({
     path: [
       {
         props: {
-          conversationIDKey: action.payload.message.conversationIDKey,
-          ordinal: action.payload.message.ordinal,
+          conversationIDKey: action.payload.conversationIDKey,
+          ordinal: action.payload.ordinal,
         },
         selected: 'chatAttachmentFullscreen',
       },
     ],
-  }),
-]
+  })
 
 // Handle an image pasted into a conversation
 const attachmentPasted = async (_: unknown, action: Chat2Gen.AttachmentPastedPayload) => {
@@ -2190,13 +2179,8 @@ const sendAudioRecording = async (
   state: Container.TypedState,
   action: Chat2Gen.SendAudioRecordingPayload
 ) => {
-  // sit here for 400ms for animations
-  if (!action.payload.fromStaged) {
-    await Container.timeoutPromise(400)
-  }
-  const {conversationIDKey, info} = action.payload
-  const audioRecording = info
-  const {amps, path, outboxID} = audioRecording
+  const {conversationIDKey, amps, path, duration} = action.payload
+  const outboxID = Constants.generateOutboxID()
   const clientPrev = Constants.getClientPrev(state, conversationIDKey)
   const ephemeralLifetime = Constants.getConversationExplodingMode(state, conversationIDKey)
   const meta = state.chat2.metaMap.get(conversationIDKey)
@@ -2207,11 +2191,7 @@ const sendAudioRecording = async (
 
   let callerPreview: RPCChatTypes.MakePreviewRes | undefined
   if (amps) {
-    const duration = Constants.audioRecordingDuration(audioRecording)
-    callerPreview = await RPCChatTypes.localMakeAudioPreviewRpcPromise({
-      amps: amps.getBucketedAmps(duration),
-      duration,
-    })
+    callerPreview = await RPCChatTypes.localMakeAudioPreviewRpcPromise({amps, duration})
   }
   const ephemeralData = ephemeralLifetime !== 0 ? {ephemeralLifetime} : {}
   try {
@@ -2386,7 +2366,7 @@ const markThreadAsRead = async (
   const mmap = state.chat2.messageMap.get(conversationIDKey)
   if (mmap) {
     const ordinals = Constants.getMessageOrdinals(state, conversationIDKey)
-    const ordinal = [...ordinals].reverse().find(o => {
+    const ordinal = findLast([...ordinals], (o: Types.Ordinal) => {
       const m = mmap.get(o)
       return m ? !!m.id : false
     })
@@ -2397,10 +2377,115 @@ const markThreadAsRead = async (
   if (meta) {
     readMsgID = message ? (message.id > meta.maxMsgID ? message.id : meta.maxMsgID) : meta.maxMsgID
   }
-  logger.info(`marking read messages ${conversationIDKey} ${readMsgID}`)
+  if (action.type === Chat2Gen.updateUnreadline && readMsgID && readMsgID >= action.payload.messageID) {
+    // If we are marking as unread, don't send the local RPC.
+    return
+  }
+
+  logger.info(`marking read messages ${conversationIDKey} ${readMsgID} for ${action.type}`)
   await RPCChatTypes.localMarkAsReadLocalRpcPromise({
     conversationID: Types.keyToConversationID(conversationIDKey),
+    forceUnread: false,
     msgID: readMsgID,
+  })
+}
+
+const markAsUnread = async (
+  state: Container.TypedState,
+  action: Chat2Gen.MarkAsUnreadPayload,
+  listenerApi: Container.ListenerApi
+) => {
+  if (!state.config.loggedIn) {
+    logger.info('bail on not logged in')
+    return
+  }
+  const {conversationIDKey, readMsgID} = action.payload
+  const meta = state.chat2.metaMap.get(conversationIDKey)
+  const unreadLineID = readMsgID ? readMsgID : meta ? meta.maxVisibleMsgID : 0
+  let msgID = unreadLineID
+
+  // Find first visible message prior to what we have marked as unread. The
+  // server will use this value to calculate our badge state.
+  const messageMap = state.chat2.messageMap.get(conversationIDKey)
+
+  if (messageMap) {
+    const ordinals = state.chat2.messageOrdinals.get(conversationIDKey) ?? []
+    const ord =
+      messageMap &&
+      findLast([...ordinals], (o: Types.Ordinal) => {
+        const message = messageMap.get(o)
+        return !!(message && message.id < unreadLineID)
+      })
+    const message = ord ? messageMap?.get(ord) : null
+    if (message) {
+      msgID = message.id
+    }
+  } else {
+    const pagination = {
+      last: false,
+      next: '',
+      num: 2, // we need 2 items
+      previous: '',
+    }
+    try {
+      await new Promise<void>(resolve => {
+        const onGotThread = (p: any) => {
+          try {
+            const d = JSON.parse(p)
+            msgID = d?.messages[1]?.valid?.messageID
+            resolve()
+          } catch {}
+        }
+        RPCChatTypes.localGetThreadNonblockRpcListener(
+          {
+            incomingCallMap: {
+              'chat.1.chatUi.chatThreadCached': p => p && onGotThread(p.thread || ''),
+              'chat.1.chatUi.chatThreadFull': p => p && onGotThread(p.thread || ''),
+            },
+            params: {
+              cbMode: RPCChatTypes.GetThreadNonblockCbMode.incremental,
+              conversationID: Types.keyToConversationID(conversationIDKey),
+              identifyBehavior: RPCTypes.TLFIdentifyBehavior.chatGui,
+              knownRemotes: [],
+              pagination,
+              pgmode: RPCChatTypes.GetThreadNonblockPgMode.server,
+              query: {
+                disablePostProcessThread: false,
+                disableResolveSupersedes: false,
+                enableDeletePlaceholders: true,
+                markAsRead: false,
+                messageIDControl: null,
+                messageTypes: loadThreadMessageTypes,
+              },
+              reason: reasonToRPCReason(''),
+            },
+          },
+          listenerApi
+        )
+          .then(() => {})
+          .catch(() => {
+            resolve()
+          })
+      })
+    } catch {}
+  }
+
+  if (!msgID) {
+    logger.info(`marking unread messages ${conversationIDKey} failed due to no id`)
+    return
+  }
+
+  logger.info(`marking unread messages ${conversationIDKey} ${msgID}`)
+  RPCChatTypes.localMarkAsReadLocalRpcPromise({
+    conversationID: Types.keyToConversationID(conversationIDKey),
+    forceUnread: true,
+    msgID,
+  })
+    .then(() => {})
+    .catch(() => {})
+  return Chat2Gen.createUpdateUnreadline({
+    conversationIDKey,
+    messageID: unreadLineID,
   })
 }
 
@@ -2855,8 +2940,12 @@ const setConvRetentionPolicy = async (_: unknown, action: Chat2Gen.SetConvRetent
   return false
 }
 
-const toggleMessageCollapse = async (_: unknown, action: Chat2Gen.ToggleMessageCollapsePayload) => {
-  const {collapse, conversationIDKey, messageID} = action.payload
+const toggleMessageCollapse = async (
+  state: Container.TypedState,
+  action: Chat2Gen.ToggleMessageCollapsePayload
+) => {
+  const {conversationIDKey, messageID} = action.payload
+  const collapse = !state.chat2.messageMap.get(conversationIDKey)?.get(messageID)?.isCollapsed
   await RPCChatTypes.localToggleMessageCollapseRpcPromise({
     collapse,
     convID: Types.keyToConversationID(conversationIDKey),
@@ -2988,14 +3077,16 @@ const messageReplyPrivately = async (
     logger.warn('messageReplyPrivately: unable to make meta')
     return
   }
+
+  if (message.type !== 'text') {
+    return
+  }
+  const text = new Container.HiddenString(Constants.formatTextForQuoting(message.text.stringValue()))
+
   return [
     Chat2Gen.createMetasReceived({metas: [meta]}),
     Chat2Gen.createNavigateToThread({conversationIDKey, reason: 'createdMessagePrivately'}),
-    Chat2Gen.createMessageSetQuoting({
-      ordinal: action.payload.ordinal,
-      sourceConversationIDKey: action.payload.sourceConversationIDKey,
-      targetConversationIDKey: conversationIDKey,
-    }),
+    Chat2Gen.createSetUnsentText({conversationIDKey, text}),
   ]
 }
 
@@ -3476,18 +3567,22 @@ const dismissBlockButtons = async (_: unknown, action: Chat2Gen.DismissBlockButt
   }
 }
 
-const createConversationFromTeamBuilder = (
+const createConversationFromTeamBuilder = async (
   state: Container.TypedState,
   {payload: {namespace}}: TeamBuildingGen.FinishedTeamBuildingPayload
-) => [
-  Chat2Gen.createNavigateToThread({
-    conversationIDKey: Constants.pendingWaitingConversationIDKey,
-    reason: 'justCreated',
-  }),
-  Chat2Gen.createCreateConversation({
-    participants: [...state[namespace].teamBuilding.finishedTeam].map(u => u.id),
-  }),
-]
+) => {
+  // need to let the mdoal hide first else its thrashy
+  await Container.timeoutPromise(500)
+  return [
+    Chat2Gen.createNavigateToThread({
+      conversationIDKey: Constants.pendingWaitingConversationIDKey,
+      reason: 'justCreated',
+    }),
+    Chat2Gen.createCreateConversation({
+      participants: [...state[namespace].teamBuilding.finishedTeam].map(u => u.id),
+    }),
+  ]
+}
 
 const setInboxNumSmallRows = async (
   state: Container.TypedState,
@@ -3681,18 +3776,19 @@ const onShowInfoPanel = (_: unknown, action: Chat2Gen.ShowInfoPanelPayload) => {
   }
 }
 
-const maybeChangeChatSelection = (_: unknown, action: RouteTreeGen.OnNavChangedPayload) => {
+const maybeChangeChatSelection = (state: Container.TypedState, action: RouteTreeGen.OnNavChangedPayload) => {
   const {prev, next} = action.payload
-  const p = prev[prev.length - 1]
-  const n = next[next.length - 1]
-
-  const wasModal = prev.length && !Router2Constants.getRouteLoggedIn(prev)
-  const isModal = !Router2Constants.getRouteLoggedIn(next)
+  const wasModal = prev && Router2Constants.getModalStack(prev).length > 0
+  const isModal = next && Router2Constants.getModalStack(next).length > 0
 
   // ignore if changes involve a modal
   if (wasModal || isModal) {
     return
   }
+
+  const p = Router2Constants.getVisibleScreen(prev)
+  const n = Router2Constants.getVisibleScreen(next)
+
   const wasChat = p?.name === Constants.threadRouteName
   const isChat = n?.name === Constants.threadRouteName
 
@@ -3710,7 +3806,10 @@ const maybeChangeChatSelection = (_: unknown, action: RouteTreeGen.OnNavChangedP
 
   // same? ignore
   if (wasChat && isChat && wasID === isID) {
-    return false
+    // if we've never loaded anything, keep going so we load it
+    if (!isID || state.chat2.containsLatestMessageMap.get(isID) !== undefined) {
+      return false
+    }
   }
 
   // deselect if there was one
@@ -3741,10 +3840,7 @@ const maybeChangeChatSelection = (_: unknown, action: RouteTreeGen.OnNavChangedP
 
 const maybeChatTabSelected = (_: unknown, action: RouteTreeGen.OnNavChangedPayload) => {
   const {prev, next} = action.payload
-  if (
-    Router2Constants.getRouteTab(prev) !== Tabs.chatTab &&
-    Router2Constants.getRouteTab(next) === Tabs.chatTab
-  ) {
+  if (Router2Constants.getTab(prev) !== Tabs.chatTab && Router2Constants.getTab(next) === Tabs.chatTab) {
     return Chat2Gen.createTabSelected()
   }
   return false
@@ -3837,8 +3933,6 @@ const initChat = () => {
 
   Container.listenAction(ConfigGen.bootstrapStatusLoaded, startupUserReacjisLoad)
 
-  Container.listenAction(Chat2Gen.updateUserReacjis, onUpdateUserReacjis)
-
   // Search handling
   Container.listenAction(Chat2Gen.attachmentPreviewSelect, attachmentPreviewSelect)
   Container.listenAction(Chat2Gen.attachmentDownload, attachmentDownload)
@@ -3863,7 +3957,8 @@ const initChat = () => {
     ],
     markThreadAsRead
   )
-  Container.listenAction([Chat2Gen.markTeamAsRead], markTeamAsRead)
+  Container.listenAction(Chat2Gen.markTeamAsRead, markTeamAsRead)
+  Container.listenAction(Chat2Gen.markAsUnread, markAsUnread)
   Container.listenAction(Chat2Gen.messagesAdd, messagesAdd)
   Container.listenAction(
     [

@@ -3,12 +3,12 @@ import Main from '../../app/main.desktop'
 // order of the above 2 must NOT change. needed for patching / hot loading to be correct
 import * as NotificationsGen from '../../actions/notifications-gen'
 import * as React from 'react'
-import ReactDOM from 'react-dom'
+import * as ReactDOM from 'react-dom/client'
 import RemoteProxies from '../remote/proxies.desktop'
 import Root from './container.desktop'
 import makeStore from '../../store/configure-store'
 import {makeEngine} from '../../engine'
-import {disable as disableDragDrop} from '../../util/drag-drop'
+import {disableDragDrop} from '../../util/drag-drop.desktop'
 import flags from '../../util/feature-flags'
 import {dumpLogs} from '../../actions/platform-specific/index.desktop'
 import {initDesktopStyles} from '../../styles/index.desktop'
@@ -135,7 +135,7 @@ const render = (Component = Main) => {
     throw new Error('No root element?')
   }
 
-  ReactDOM.render(
+  ReactDOM.createRoot(root).render(
     <Root store={store}>
       <DarkCSSInjector />
       <RemoteProxies />
@@ -143,8 +143,7 @@ const render = (Component = Main) => {
       <div style={{display: 'flex', flex: 1}}>
         <Component />
       </div>
-    </Root>,
-    root
+    </Root>
   )
 }
 
@@ -178,7 +177,25 @@ const load = () => {
   store = temp.store
   setupApp(store, initListeners)
   setupHMR(store)
-  render()
+
+  if (__DEV__) {
+    // let us load devtools first
+    const DEBUG_DEFER = false
+    if (DEBUG_DEFER) {
+      for (let i = 0; i < 10; ++i) {
+        console.log('DEBUG_DEFER on!!!')
+      }
+      const e: any = <div>temp</div>
+      ReactDOM.createRoot(document.getElementById('root')!, e)
+      setTimeout(() => {
+        render()
+      }, 5000)
+    } else {
+      render()
+    }
+  } else {
+    render()
+  }
 }
 
 load()

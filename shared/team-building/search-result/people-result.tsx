@@ -9,7 +9,7 @@ import * as WalletsType from '../../constants/types/wallets'
 import * as ChatConstants from '../../constants/chat2'
 import * as Container from '../../util/container'
 import * as Chat2Gen from '../../actions/chat2-gen'
-import CommonResult, {ResultProps} from './common-result'
+import CommonResult, {type ResultProps} from './common-result'
 
 /*
  * This component is intended to be a drop-in replacement for UserResult.
@@ -18,7 +18,7 @@ import CommonResult, {ResultProps} from './common-result'
  * a bunch of React hooks to handle all the stateful logic needed to make the menu and chat button work.
  */
 
-const PeopleResult = React.memo((props: ResultProps) => {
+const PeopleResult = React.memo(function PeopleResult(props: ResultProps) {
   const keybaseUsername: string | null = props.services['keybase'] || null
   const serviceUsername = props.services[props.resultForService]
 
@@ -134,7 +134,7 @@ type DropdownProps = {
   onUnfollow?: () => void
 }
 
-const DropdownButton = Kb.OverlayParentHOC((p: Kb.PropsWithOverlay<DropdownProps>) => {
+const DropdownButton = (p: DropdownProps) => {
   const items: Kb.MenuItems = [
     p.onAddToTeam && {icon: 'iconfont-add', onClick: p.onAddToTeam, title: 'Add to team...'},
     p.onSendLumens && {icon: 'iconfont-stellar-send', onClick: p.onSendLumens, title: 'Send Lumens (XLM)'},
@@ -164,30 +164,34 @@ const DropdownButton = Kb.OverlayParentHOC((p: Kb.PropsWithOverlay<DropdownProps
     return arr
   }, [])
 
+  const {toggleShowingPopup, showingPopup, popup, popupAnchor} = Kb.usePopup(attachTo => (
+    <Kb.FloatingMenu
+      closeOnSelect={true}
+      attachTo={attachTo}
+      items={items}
+      onHidden={toggleShowingPopup}
+      position="bottom right"
+      visible={showingPopup}
+    />
+  ))
+
   return (
     <Kb.ClickableBox
       onClick={e => {
         e.stopPropagation()
-        p.toggleShowingMenu()
+        toggleShowingPopup()
       }}
-      ref={p.setAttachmentRef}
+      ref={popupAnchor}
     >
       <Kb.Box2 direction="horizontal" fullWidth={true} gap="xsmall">
         <Kb.Button onClick={undefined} mode="Secondary" style={styles.dropdownButton} small={true}>
           <Kb.Icon color={Styles.globalColors.blue} type="iconfont-ellipsis" />
         </Kb.Button>
       </Kb.Box2>
-      <Kb.FloatingMenu
-        closeOnSelect={true}
-        attachTo={p.getAttachmentRef}
-        items={items}
-        onHidden={p.toggleShowingMenu}
-        position="bottom right"
-        visible={p.showingMenu}
-      />
+      {popup}
     </Kb.ClickableBox>
   )
-})
+}
 
 const styles = Styles.styleSheetCreate(() => ({
   chatIcon: {marginRight: Styles.globalMargins.tiny},

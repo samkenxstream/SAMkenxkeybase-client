@@ -86,7 +86,7 @@ build_one_architecture() {
 
   # Build the client binary. Note that `go build` reads $GOARCH.
   echo "Building client for $GOARCH..."
-  (cd $client_dir && go build -tags "$go_tags" -ldflags "$ldflags_client" -buildmode="$buildmode" -o \
+  (cd "$client_dir" && go build -tags "$go_tags" -ldflags "$ldflags_client" -buildmode="$buildmode" -o \
     "$layout_dir/usr/bin/$binary_name" github.com/keybase/client/go/keybase)
 
   # Short-circuit if we're not building electron.
@@ -104,12 +104,12 @@ build_one_architecture() {
 
   # Build the kbfsfuse binary. Currently, this always builds from master.
   echo "Building kbfs for $GOARCH..."
-  (cd $client_dir && go build -tags "$go_tags" -ldflags "$ldflags_kbfs" -buildmode="$buildmode" -o \
+  (cd "$client_dir" && go build -tags "$go_tags" -ldflags "$ldflags_kbfs" -buildmode="$buildmode" -o \
     "$layout_dir/usr/bin/kbfsfuse" github.com/keybase/client/go/kbfs/kbfsfuse)
 
   # Build the git-remote-keybase binary, also from the kbfs repo.
   echo "Building git-remote-keybase for $GOARCH..."
-  (cd $client_dir && go build -tags "$go_tags" -ldflags "$ldflags_kbfs" -buildmode="$buildmode" -o \
+  (cd "$client_dir" && go build -tags "$go_tags" -ldflags "$ldflags_kbfs" -buildmode="$buildmode" -o \
     "$layout_dir/usr/bin/git-remote-keybase" github.com/keybase/client/go/kbfs/kbfsgit/git-remote-keybase)
 
   # Short-circuit if we're doing a Docker multi-stage build
@@ -120,12 +120,12 @@ build_one_architecture() {
 
   # Build the root redirector binary.
   echo "Building keybase-redirector for $GOARCH..."
-  (cd $client_dir && go build -tags "$go_tags" -ldflags "$ldflags_client" -buildmode="$buildmode" -o \
+  (cd "$client_dir" && go build -tags "$go_tags" -ldflags "$ldflags_client" -buildmode="$buildmode" -o \
     "$layout_dir/usr/bin/keybase-redirector" github.com/keybase/client/go/kbfs/redirector)
 
   # Build the kbnm binary
   echo "Building kbnm for $GOARCH..."
-  (cd $client_dir && go build -tags "$go_tags" -ldflags "$ldflags_kbnm" -buildmode="$buildmode" -o \
+  (cd "$client_dir" && go build -tags "$go_tags" -ldflags "$ldflags_kbnm" -buildmode="$buildmode" -o \
     "$layout_dir/usr/bin/kbnm" github.com/keybase/client/go/kbnm)
 
   # Write allowlists into the overlay. Note that we have to explicitly set USER
@@ -201,14 +201,4 @@ if [ -z "${KEYBASE_SKIP_64_BIT:-}" ] ; then
   build_one_architecture
 else
   echo SKIPPING 64-bit build
-fi
-
-if [ -z "${KEYBASE_SKIP_32_BIT:-}" ] ; then
-  echo "Keybase: Building for x86"
-  export GOARCH=386
-  export debian_arch=i386
-  export electron_arch=ia32
-  build_one_architecture
-else
-  echo SKIPPING 32-bit build
 fi

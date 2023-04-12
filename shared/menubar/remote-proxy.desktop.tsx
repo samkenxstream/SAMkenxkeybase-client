@@ -1,5 +1,5 @@
 // A mirror of the remote menubar windows.
-import * as ChatConstants from '../constants/chat2'
+import * as FSConstants from '../constants/fs'
 import type * as NotificationTypes from '../constants/types/notifications'
 import * as FSTypes from '../constants/types/fs'
 import * as Container from '../util/container'
@@ -9,7 +9,6 @@ import {intersect} from '../util/set'
 import useSerializeProps from '../desktop/remote/use-serialize-props.desktop'
 import {serialize, type ProxyProps, type RemoteTlfUpdates} from './remote-serializer.desktop'
 import {isSystemDarkMode} from '../styles/dark-mode'
-import {uploadsToUploadCountdownHOCProps} from '../fs/footer/upload-container'
 import {mapFilterByKey} from '../util/map'
 import {memoize} from '../util/memoize'
 import shallowEqual from 'shallowequal'
@@ -63,27 +62,56 @@ const getCachedUsernames = memoize(
   ([a], [b]) => shallowEqual(a, b)
 )
 
-const RemoteProxy = () => {
-  const notifications = Container.useSelector(s => s.notifications)
-  const {desktopAppBadgeCount, navBadges, widgetBadge} = notifications
+// TODO could make this render less
+const RemoteProxy = React.memo(function MenubarRemoteProxy() {
+  const s = Container.useSelector(state => {
+    const {notifications, config, fs, chat2, users} = state
+    const {desktopAppBadgeCount, navBadges, widgetBadge} = notifications
+    const {httpSrvToken, httpSrvAddress, windowShownCount, username, following} = config
+    const {outOfDate, loggedIn, daemonHandshakeState, avatarRefreshCounter, followers} = config
+    const {pathItems, tlfUpdates, uploads, overallSyncStatus, kbfsDaemonStatus, sfmi} = fs
+    const {inboxLayout, metaMap, badgeMap, unreadMap, participantMap} = chat2
+    const widgetList = inboxLayout?.widgetList
+    const {infoMap} = users
 
-  const config = Container.useSelector(s => s.config)
-  const {daemonHandshakeState, loggedIn, outOfDate, username, windowShownCount} = config
-  const {httpSrvAddress, httpSrvToken} = config
-  const {avatarRefreshCounter: _arc, followers: _followers, following: _following} = config
+    return {
+      avatarRefreshCounter,
+      badgeMap,
+      daemonHandshakeState,
+      desktopAppBadgeCount,
+      followers,
+      following,
+      httpSrvAddress,
+      httpSrvToken,
+      infoMap,
+      kbfsDaemonStatus,
+      loggedIn,
+      metaMap,
+      navBadges,
+      outOfDate,
+      overallSyncStatus,
+      participantMap,
+      pathItems,
+      sfmi,
+      tlfUpdates,
+      unreadMap,
+      uploads,
+      username,
+      widgetBadge,
+      widgetList,
+      windowShownCount,
+    }
+  }, shallowEqual)
 
-  const fs = Container.useSelector(s => s.fs)
-  const {pathItems, tlfUpdates, uploads, overallSyncStatus, kbfsDaemonStatus, sfmi} = fs
-
-  const chat2 = Container.useSelector(s => s.chat2)
-  const {inboxLayout, metaMap, badgeMap, unreadMap, participantMap} = chat2
+  const {avatarRefreshCounter, badgeMap, daemonHandshakeState, desktopAppBadgeCount, followers, following} = s
+  const {httpSrvAddress, httpSrvToken, infoMap, kbfsDaemonStatus, loggedIn, metaMap} = s
+  const {navBadges, outOfDate, overallSyncStatus, participantMap, pathItems} = s
+  const {sfmi, tlfUpdates, unreadMap, uploads, username} = s
+  const {widgetBadge, widgetList, windowShownCount} = s
 
   const darkMode = Styles.isDarkMode()
   const {diskSpaceStatus, showingBanner} = overallSyncStatus
   const kbfsEnabled = sfmi.driverStatus.type === 'enabled'
-
-  const users = Container.useSelector(s => s.users)
-  const {infoMap: _infoMap} = users
 
   const remoteTlfUpdates = React.useMemo(
     () => tlfUpdates.map(t => GetRowsFromTlfUpdate(t, uploads)),
@@ -92,48 +120,75 @@ const RemoteProxy = () => {
 
   const conversationsToSend = React.useMemo(
     () =>
-      inboxLayout?.widgetList?.map(v => ({
-        conversation: metaMap.get(v.convID) || {
-          ...ChatConstants.makeConversationMeta(),
+      widgetList?.map(v => {
+        const c = metaMap.get(v.convID)
+
+        let participants = participantMap.get(v.convID)?.name ?? []
+        participants = participants.slice(0, 3)
+
+        return {
+          channelname: c?.channelname,
           conversationIDKey: v.convID,
-        },
-        hasBadge: !!badgeMap.get(v.convID),
-        hasUnread: !!unreadMap.get(v.convID),
-        participantInfo: participantMap.get(v.convID) ?? ChatConstants.noParticipantInfo,
-      })) ?? [],
-    [inboxLayout, metaMap, badgeMap, unreadMap, participantMap]
+          snippetDecorated: c?.snippetDecorated,
+          teamType: c?.teamType,
+          timestamp: c?.timestamp,
+          tlfname: c?.tlfname,
+          ...(badgeMap.get(v.convID) ? {hasBadge: true as const} : {}),
+          ...(unreadMap.get(v.convID) ? {hasUnread: true as const} : {}),
+          ...(participants.length ? {participants} : {}),
+        }
+      }) ?? [],
+    [widgetList, metaMap, badgeMap, unreadMap, participantMap]
   )
 
   // filter some data based on visible users
   const usernamesArr: Array<string> = []
   tlfUpdates.forEach(update => usernamesArr.push(update.writer))
-  conversationsToSend.forEach(c => {
-    if (c.conversation.teamType === 'adhoc') {
-      usernamesArr.push(...c.participantInfo.all)
-    }
-  })
+  conversationsToSend.forEach(c => usernamesArr.push(...(c.participants ?? [])))
 
   // memoize so useMemos work below
   const usernames = getCachedUsernames(usernamesArr)
 
-  const avatarRefreshCounter = React.useMemo(() => mapFilterByKey(_arc, usernames), [_arc, usernames])
-  const followers = React.useMemo(() => intersect(_followers, usernames), [_followers, usernames])
-  const following = React.useMemo(() => intersect(_following, usernames), [_following, usernames])
-  const infoMap = React.useMemo(() => mapFilterByKey(_infoMap, usernames), [_infoMap, usernames])
+  const avatarRefreshCounterFiltered = React.useMemo(
+    () => mapFilterByKey(avatarRefreshCounter, usernames),
+    [avatarRefreshCounter, usernames]
+  )
+  const followersFiltered = React.useMemo(() => intersect(followers, usernames), [followers, usernames])
+  const followingFiltered = React.useMemo(() => intersect(following, usernames), [following, usernames])
+  const infoMapFiltered = React.useMemo(() => mapFilterByKey(infoMap, usernames), [infoMap, usernames])
+
+  // We just use syncingPaths rather than merging with writingToJournal here
+  // since journal status comes a bit slower, and merging the two causes
+  // flakes on our perception of overall upload status.
+
+  // Filter out folder paths.
+  const filePaths = [...uploads.syncingPaths].filter(
+    path => FSConstants.getPathItem(pathItems, path).type !== FSTypes.PathType.Folder
+  )
+
+  const upDown = {
+    // We just use syncingPaths rather than merging with writingToJournal here
+    // since journal status comes a bit slower, and merging the two causes
+    // flakes on our perception of overall upload status.
+    endEstimate: uploads.endEstimate ?? 0,
+    filename: FSTypes.getPathName(filePaths[1] || FSTypes.stringToPath('')),
+    files: filePaths.length,
+    totalSyncingBytes: uploads.totalSyncingBytes,
+  }
 
   const p: ProxyProps & WidgetProps = {
-    ...uploadsToUploadCountdownHOCProps(pathItems, uploads),
-    avatarRefreshCounter,
+    ...upDown,
+    avatarRefreshCounter: avatarRefreshCounterFiltered,
     conversationsToSend,
     daemonHandshakeState,
     darkMode,
     desktopAppBadgeCount,
     diskSpaceStatus,
-    followers,
-    following,
+    followers: followersFiltered,
+    following: followingFiltered,
     httpSrvAddress,
     httpSrvToken,
-    infoMap,
+    infoMap: infoMapFiltered,
     kbfsDaemonStatus,
     kbfsEnabled,
     loggedIn,
@@ -147,5 +202,6 @@ const RemoteProxy = () => {
   }
 
   return <Widget {...p} />
-}
+})
+
 export default RemoteProxy

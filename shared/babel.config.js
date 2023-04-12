@@ -1,11 +1,15 @@
 // Cache in the module. This can get called from multiple places and env vars can get lost
 const skipAnimation = require('./common-adapters/skip-animations')
+// why did you render
+const enableWDYR = false
+
 let isElectron = null
 let isReactNative = null
 let isTest = null
 
 module.exports = function (api /*: any */) {
   const apiEnv = api.env()
+  const isDev = apiEnv === 'development'
 
   if (apiEnv === 'test') {
     isTest = true
@@ -26,7 +30,7 @@ module.exports = function (api /*: any */) {
 
   api.cache(true)
 
-  // console.error('KB babel.config.js ', {isElectron, isReactNative})
+  // console.error('KB babel.config.js ', {isElectron, isReactNative, apiEnv})
 
   if (!isElectron && !isReactNative) {
     throw new Error('MUST have env var BABEL_PLATFORM to all babel')
@@ -48,7 +52,16 @@ module.exports = function (api /*: any */) {
       ],
       presets: [
         isTest ? ['@babel/preset-env', {targets: {node: 'current'}}] : '@babel/preset-env',
-        '@babel/preset-react',
+        [
+          '@babel/preset-react',
+          isDev
+            ? {
+                runtime: 'automatic',
+                development: true,
+                ...(enableWDYR ? {importSource: '@welldone-software/why-did-you-render'} : {}),
+              }
+            : {},
+        ],
         '@babel/preset-typescript',
       ],
     }
@@ -58,8 +71,20 @@ module.exports = function (api /*: any */) {
       plugins: [
         ...(skipAnimation ? [] : ['react-native-reanimated/plugin']),
         '@babel/plugin-proposal-numeric-separator',
+        isDev
+          ? [
+              '@babel/plugin-transform-react-jsx-development',
+              {
+                runtime: 'automatic',
+                ...(enableWDYR ? {importSource: '@welldone-software/why-did-you-render'} : {}),
+              },
+            ]
+          : ['@babel/plugin-transform-react-jsx', {runtime: 'automatic'}],
       ],
-      presets: ['module:metro-react-native-babel-preset'],
+      presets: [
+        // lets us set our own jsx above
+        ['module:metro-react-native-babel-preset', {useTransformReactJSXExperimental: true}],
+      ],
     }
   }
 }

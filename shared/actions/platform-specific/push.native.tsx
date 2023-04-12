@@ -1,28 +1,37 @@
 import * as Chat2Gen from '../chat2-gen'
 import * as ConfigGen from '../config-gen'
 import * as Constants from '../../constants/push'
+import * as Container from '../../util/container'
 import * as NotificationsGen from '../notifications-gen'
 import * as ProfileGen from '../profile-gen'
 import * as PushGen from '../push-gen'
-import PushNotificationIOS from '@react-native-community/push-notification-ios'
 import * as RPCChatTypes from '../../constants/types/rpc-chat-gen'
 import * as RPCTypes from '../../constants/types/rpc-gen'
-import * as WaitingGen from '../waiting-gen'
 import * as RouteTreeGen from '../route-tree-gen'
 import * as Tabs from '../../constants/tabs'
+import * as WaitingGen from '../waiting-gen'
+import PushNotificationIOS from '@react-native-community/push-notification-ios'
 import logger from '../../logger'
-import {NativeEventEmitter} from 'react-native'
-import {NativeModules} from '../../util/native-modules.native'
-import {isIOS, isAndroid} from '../../constants/platform'
-import * as Container from '../../util/container'
-import type * as Types from '../../constants/types/push'
 import type * as ChatTypes from '../../constants/types/chat2'
+import type * as Types from '../../constants/types/push'
+import {isIOS, isAndroid} from '../../constants/platform'
+import {
+  iosGetHasShownPushPrompt,
+  androidRequestPushPermissions,
+  androidCheckPushPermissions,
+  androidGetRegistrationToken,
+  androidSetApplicationIconBadgeNumber,
+  androidGetInitialBundleFromNotification,
+  androidGetInitialShareFileUrl,
+  androidGetInitialShareText,
+  getNativeEmitter,
+} from 'react-native-kb'
 
 const setApplicationIconBadgeNumber = (n: number) => {
   if (isIOS) {
     PushNotificationIOS.setApplicationIconBadgeNumber(n)
   } else {
-    NativeModules.KeybaseEngine.androidSetApplicationIconBadgeNumber?.(n)
+    androidSetApplicationIconBadgeNumber(n)
   }
 }
 
@@ -57,11 +66,11 @@ const updateAppBadge = (_: unknown, action: NotificationsGen.ReceivedBadgeStateP
 // event listener before the event is emitted. In that case you can always use
 // `getInitialPushAndroid`.
 const listenForNativeAndroidIntentNotifications = async (listenerApi: Container.ListenerApi) => {
-  const pushToken = (await NativeModules.Utils.androidGetRegistrationToken?.()) ?? ''
+  const pushToken = await androidGetRegistrationToken()
   logger.debug('[PushToken] received new token: ', pushToken)
   listenerApi.dispatch(PushGen.createUpdatePushToken({token: pushToken}))
 
-  const RNEmitter = new NativeEventEmitter(NativeModules.KeybaseEngine as any)
+  const RNEmitter = getNativeEmitter()
   RNEmitter.addListener('initialIntentFromNotification', evt => {
     const notification = evt && Constants.normalizePush(evt)
     notification && listenerApi.dispatch(PushGen.createNotification({notification}))
@@ -78,7 +87,7 @@ const listenForNativeAndroidIntentNotifications = async (listenerApi: Container.
   })
 }
 
-const listenForPushNotificationsFromJS = (listenerApi: Container.ListenerApi) => {
+const iosListenForPushNotificationsFromJS = (listenerApi: Container.ListenerApi) => {
   const onRegister = (token: string) => {
     logger.debug('[PushToken] received new token: ', token)
     listenerApi.dispatch(PushGen.createUpdatePushToken({token}))
@@ -104,7 +113,7 @@ const setupPushEventLoop = async (_s: unknown, _a: unknown, listenerApi: Contain
       await listenForNativeAndroidIntentNotifications(listenerApi)
     } catch {}
   } else {
-    listenForPushNotificationsFromJS(listenerApi)
+    iosListenForPushNotificationsFromJS(listenerApi)
   }
 }
 
@@ -260,18 +269,31 @@ const deletePushToken = async (
   }
 }
 
-const requestPermissionsFromNative = async () =>
-  isIOS ? PushNotificationIOS.requestPermissions() : Promise.resolve()
+const requestPermissionsFromNative: () => Promise<{
+  alert: boolean
+  badge: boolean
+  sound: boolean
+}> = async () => {
+  if (isIOS) {
+    const perm = await (PushNotificationIOS.requestPermissions() as any)
+    return perm
+  } else {
+    const on = await androidRequestPushPermissions()
+    const perm = {alert: on, badge: on, sound: on}
+    return perm
+  }
+}
+
 const askNativeIfSystemPushPromptHasBeenShown = async () =>
-  isIOS
-    ? NativeModules.IOSPushPrompt?.getHasShownPushPrompt() ?? Promise.resolve(false)
-    : Promise.resolve(false)
+  isIOS ? iosGetHasShownPushPrompt() ?? Promise.resolve(false) : Promise.resolve(false)
 const checkPermissionsFromNative = async () =>
-  new Promise<{alert?: boolean; badge?: boolean; sound?: boolean}>(resolve => {
+  new Promise<{alert?: boolean; badge?: boolean; sound?: boolean}>((resolve, reject) => {
     if (isIOS) {
       PushNotificationIOS.checkPermissions(perms => resolve(perms))
     } else {
-      resolve({})
+      androidCheckPushPermissions()
+        .then(on => resolve({alert: on, badge: on, sound: on}))
+        .catch(() => reject())
     }
   })
 const monsterStorageKey = 'shownMonsterPushPrompt'
@@ -305,9 +327,11 @@ const requestPermissions = async (_s: unknown, _a: unknown, listenerApi: Contain
     }
   }
   try {
+    listenerApi.dispatch(ConfigGen.createOpenAppSettings())
     listenerApi.dispatch(WaitingGen.createIncrementWaiting({key: Constants.permissionsRequestingWaitingKey}))
     logger.info('[PushRequesting] asking native')
-    const permissions = await requestPermissionsFromNative()
+    await requestPermissionsFromNative()
+    const permissions = await checkPermissionsFromNative()
     logger.info('[PushRequesting] after prompt:', permissions)
     if (permissions && (permissions.alert || permissions.badge)) {
       logger.info('[PushRequesting] enabled')
@@ -389,9 +413,8 @@ const _checkPermissions = async (
 
 const getStartupDetailsFromInitialShare = async () => {
   if (isAndroid) {
-    const fileUrl = await (NativeModules.KeybaseEngine.androidGetInitialShareFileUrl?.() ??
-      Promise.resolve(''))
-    const text = await (NativeModules.KeybaseEngine.androidGetInitialShareText?.() ?? Promise.resolve(''))
+    const fileUrl = await (androidGetInitialShareFileUrl() ?? Promise.resolve(''))
+    const text = await (androidGetInitialShareText() ?? Promise.resolve(''))
     return {fileUrl, text}
   } else {
     return Promise.resolve(undefined)
@@ -426,8 +449,7 @@ const getStartupDetailsFromInitialPush = async () => {
 }
 
 const getInitialPushAndroid = async () => {
-  const n = await (NativeModules.KeybaseEngine.androidGetInitialBundleFromNotification?.() ??
-    Promise.resolve({}))
+  const n = await (androidGetInitialBundleFromNotification() ?? Promise.resolve({}))
   const notification = n && Constants.normalizePush(n)
   return notification && PushGen.createNotification({notification})
 }
@@ -435,13 +457,15 @@ const getInitialPushAndroid = async () => {
 const getInitialPushiOS = async () =>
   new Promise<Container.TypedActions | null | false>(resolve => {
     isIOS &&
-      PushNotificationIOS.getInitialNotification().then((n: any) => {
-        const notification = Constants.normalizePush(n)
-        if (notification) {
-          resolve(PushGen.createNotification({notification}))
-        }
-        resolve(null)
-      })
+      PushNotificationIOS.getInitialNotification()
+        .then((n: any) => {
+          const notification = Constants.normalizePush(n)
+          if (notification) {
+            resolve(PushGen.createNotification({notification}))
+          }
+          resolve(null)
+        })
+        .catch(() => {})
   })
 
 export const initPushListener = () => {
