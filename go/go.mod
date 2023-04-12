@@ -108,8 +108,8 @@ require (
 	github.com/andybalholm/cascadia v0.0.0-20150730174459-3ad29d1ad1c4 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 // indirect
 	github.com/antchfx/htmlquery v0.0.0-20180925020018-98389addba3d // indirect
-	github.com/antchfx/xmlquery v0.0.0-20181024140136-98cdbc3221ed // indirect
-	github.com/antchfx/xpath v0.0.0-20180922041825-3de91f3991a1 // indirect
+	github.com/antchfx/xmlquery v1.3.1 // indirect
+	github.com/antchfx/xpath v1.1.10 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20180319081651-7d2e70ef918f // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
 	github.com/ashanbrown/makezero v1.1.1 // indirect
